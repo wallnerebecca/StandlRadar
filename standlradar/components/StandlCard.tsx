@@ -42,8 +42,10 @@ export function StandlCard({ standl, onPress }: StandlCardProps) {
                 <Text
                     style={[
                         styles.status,
-                        standl.openingStatus.type === "temporaryClosed" && styles.error,
-                        standl.openingStatus.type === "likelyOpen" && styles.warning,
+                        ["likelyOpen", "opensLater"].includes(standl.openingStatus.type) &&
+                        styles.warning,
+                        ["closed", "temporaryClosed"].includes(standl.openingStatus.type) &&
+                        styles.error,
                         standl.openingStatus.type === "unknown" && styles.neutral,
                     ]}
                 >

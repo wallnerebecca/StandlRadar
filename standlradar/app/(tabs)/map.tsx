@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { StandlCard } from "@/components/StandlCard";
 import { Theme } from "@/constants/colors";
 import { mockStandl } from "@/constants/mockStandl";
+import { router } from "expo-router/build/exports";
 
 export default function MapScreen() {
     return (
@@ -29,7 +30,7 @@ export default function MapScreen() {
                         key={standl.id}
                         standl={standl}
                         onPress={() => {
-                            console.log("Standl öffnen:", standl.id);
+                            router.push(`/standl/${standl.id}`);
                         }}
                     />
                 ))}
