@@ -4,12 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 
 import { InfoRow } from "@/components/InfoRow";
+import { ImageFavoriteButton } from "@/components/ImageFavoriteButton";
 import { OpeningStatusBadge } from "@/components/OpeningStatusBadge";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SecondaryButton } from "@/components/SecondaryButton";
 import { Theme } from "@/constants/colors";
 import { mockStandl } from "@/constants/mockStandl";
 import { CategoryLikeButton } from "@/components/CategoryLikeButton";
+import { useFavorites } from "@/contexts/FavoritesContext";
 
 export default function StandlDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string; }>();
@@ -31,6 +33,9 @@ export default function StandlDetailScreen() {
             </View>
         );
     }
+
+    const { isFavorite, toggleFavorite } = useFavorites();
+    const favoriteActive = isFavorite(standl.id);
 
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(standl.likes);
@@ -62,6 +67,13 @@ export default function StandlDetailScreen() {
                 <View style={styles.imagePlaceholder}>
                     <Text style={styles.imageIcon}>{categoryIcon}</Text>
                     <Text style={styles.imageText}>Standardbild · {categoryLabel}</Text>
+                </View>
+
+                <View style={styles.floatingFavorite}>
+                    <ImageFavoriteButton
+                        active={favoriteActive}
+                        onPress={() => toggleFavorite(standl.id)}
+                    />
                 </View>
 
                 <View style={styles.floatingLike}>
@@ -119,22 +131,6 @@ export default function StandlDetailScreen() {
                 />
             </View>
 
-            <View style={styles.actionGrid}>
-                <PrimaryButton
-                    label="Favorit speichern"
-                    onPress={() => console.log("Favorit speichern:", standl.id)}
-                />
-
-                <SecondaryButton
-                    label="Standzeit vorschlagen"
-                    onPress={() => console.log("Standzeit vorschlagen:", standl.id)}
-                />
-
-                <SecondaryButton
-                    label="Problem melden"
-                    onPress={() => console.log("Problem melden:", standl.id)}
-                />
-            </View>
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Standzeiten</Text>
@@ -168,6 +164,24 @@ export default function StandlDetailScreen() {
                         ergänzen.
                     </Text>
                 </View>
+            </View>
+
+            <View style={styles.actionGrid}>
+                <PrimaryButton
+                    label={favoriteActive ? "Favorit entfernen" : "Favorit speichern"}
+                    icon={favoriteActive ? "heart-dislike-outline" : "heart-outline"}
+                    onPress={() => toggleFavorite(standl.id)}
+                />
+
+                <SecondaryButton
+                    label="Standzeit vorschlagen"
+                    onPress={() => console.log("Standzeit vorschlagen:", standl.id)}
+                />
+
+                <SecondaryButton
+                    label="Problem melden"
+                    onPress={() => console.log("Problem melden:", standl.id)}
+                />
             </View>
         </ScrollView>
     );
@@ -295,6 +309,12 @@ const styles = StyleSheet.create({
     imageWrapper: {
         position: "relative",
         marginBottom: 22,
+    },
+    floatingFavorite: {
+        position: "absolute",
+        left: 8,
+        bottom: 30,
+        zIndex: 10,
     },
     floatingLike: {
         position: "absolute",

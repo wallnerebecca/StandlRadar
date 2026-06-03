@@ -5,8 +5,11 @@ import { StandlCard } from "@/components/StandlCard";
 import { Theme } from "@/constants/colors";
 import { mockStandl } from "@/constants/mockStandl";
 import { router } from "expo-router/build/exports";
+import { useFavorites } from "@/contexts/FavoritesContext";
 
 export default function MapScreen() {
+    const { favoriteStandlIds } = useFavorites();
+
     return (
         <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
             <AppHeader
@@ -29,6 +32,7 @@ export default function MapScreen() {
                     <StandlCard
                         key={standl.id}
                         standl={standl}
+                        isFavorite={favoriteStandlIds.includes(standl.id)}
                         onPress={() => {
                             router.push(`/standl/${standl.id}`);
                         }}

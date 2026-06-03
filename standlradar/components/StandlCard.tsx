@@ -1,14 +1,16 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { Theme } from "@/constants/colors";
 import type { Standl } from "@/types/standl";
 
 type StandlCardProps = {
     standl: Standl;
+    isFavorite?: boolean;
     onPress: () => void;
 };
 
-export function StandlCard({ standl, onPress }: StandlCardProps) {
+export function StandlCard({ standl, isFavorite = false, onPress }: StandlCardProps) {
     const icon = standl.category === "hendl" ? "🍗" : "🐟";
     const categoryLabel =
         standl.category === "hendl" ? "Hendlgriller" : "Steckerlfisch";
@@ -27,6 +29,13 @@ export function StandlCard({ standl, onPress }: StandlCardProps) {
             <View style={styles.content}>
                 <View style={styles.titleRow}>
                     <Text style={styles.name}>{standl.name}</Text>
+                    {isFavorite ? (
+                        <Ionicons
+                            name="heart"
+                            size={18}
+                            color={Theme.secondary}
+                        />
+                    ) : null}
 
                     {standl.isClaimed ? (
                         <Text style={styles.claimedBadge}>Bestätigt</Text>
