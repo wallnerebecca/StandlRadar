@@ -1,10 +1,26 @@
 import { StyleSheet, Text, View } from "react-native";
+import { AppHeader } from "@/components/AppHeader";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { Theme } from "@/constants/colors";
 
 export default function ProfileScreen() {
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Profil</Text>
-            <Text style={styles.text}>Login und Mein-Standl-Bereich kommen hier hin.</Text>
+            <AppHeader
+                title="Profil"
+                subtitle="Login, Einstellungen und Mein-Standl-Bereich kommen hier hin."
+            />
+
+            <PrimaryButton
+                label="Einloggen"
+                onPress={() => {
+                    console.log("Einloggen");
+                }}
+            />
+
+            <Text style={styles.hint}>
+                Mit Login kannst du Favoriten dauerhaft speichern und Standl liken.
+            </Text>
         </View>
     );
 }
@@ -12,18 +28,14 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#181412",
+        backgroundColor: Theme.background,
         padding: 24,
-        justifyContent: "center",
+        paddingTop: 64,
     },
-    title: {
-        color: "#FFF4E4",
-        fontSize: 28,
-        fontWeight: "700",
-        marginBottom: 12,
-    },
-    text: {
-        color: "#CDBBA4",
-        fontSize: 16,
+    hint: {
+        color: Theme.textSecondary,
+        fontSize: 15,
+        lineHeight: 22,
+        marginTop: 18,
     },
 });

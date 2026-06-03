@@ -1,10 +1,16 @@
 import { StyleSheet, Text, View } from "react-native";
+import { AppHeader } from "@/components/AppHeader";
+import { Theme } from "@/constants/colors";
 
 export default function MapScreen() {
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Karte</Text>
-            <Text style={styles.text}>Hier kommt später die Google Map hin.</Text>
+            <AppHeader
+                title="Karte"
+                subtitle="Hier kommt später die Google Map mit Standl-Markern hin."
+            />
+
+            <Text style={styles.placeholder}>🗺️ Map-Platzhalter</Text>
         </View>
     );
 }
@@ -12,18 +18,12 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#181412",
+        backgroundColor: Theme.background,
         padding: 24,
-        justifyContent: "center",
+        paddingTop: 64,
     },
-    title: {
-        color: "#FFF4E4",
-        fontSize: 28,
-        fontWeight: "700",
-        marginBottom: 12,
-    },
-    text: {
-        color: "#CDBBA4",
-        fontSize: 16,
+    placeholder: {
+        color: Theme.textSecondary,
+        fontSize: 18,
     },
 });
