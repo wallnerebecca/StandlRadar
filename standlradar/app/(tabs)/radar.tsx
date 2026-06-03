@@ -10,7 +10,10 @@ import { SearchFavoriteToggle } from "@/components/SearchFavoriteToggle";
 import { StandlCard } from "@/components/StandlCard";
 import { Theme } from "@/constants/colors";
 import { mockStandl } from "@/constants/mockStandl";
+import { useFavorites } from "@/contexts/FavoritesContext";
+
 import type { StandlCategory } from "@/types/standl";
+
 
 type CategoryFilter = "all" | StandlCategory;
 type ToggleValue = "search" | "favorites";
@@ -21,16 +24,15 @@ export default function RadarScreen() {
         useState<CategoryFilter>("all");
     const [showOpenOnly, setShowOpenOnly] = useState(false);
     const [activeView, setActiveView] = useState<ToggleValue>("search");
+    const userRole: "user" | "owner" = "owner";
 
-    const favoriteStandlIds = useMemo(() => ["standl-001", "standl-002"], []);
+    const { favoriteStandlIds } = useFavorites();
 
     const filteredStandl = useMemo(() => {
         let result = mockStandl;
 
         if (activeView === "favorites") {
-            result = result.filter((standl) =>
-                favoriteStandlIds.includes(standl.id)
-            );
+            result = result.filter((standl) => favoriteStandlIds.includes(standl.id));
         }
 
         if (selectedCategory !== "all") {
@@ -67,6 +69,19 @@ export default function RadarScreen() {
             />
 
             <View style={styles.ctaList}>
+
+                {userRole === "owner" ? (
+                    <RadarStartCTA
+                        title="Zu meinen Standl"
+                        description="Verwalte Zeiten, Preise und Infos zu deinen Standl."
+                        icon="storefront-outline"
+                        onPress={() => {
+                            //router.push("/owner");
+                            console.log("Zu meinen Standl");
+                        }}
+                    />
+                ) : null}
+
                 <RadarStartCTA
                     title="Standl in der Nähe finden"
                     description="Zeig dir Hendl und Steckerlfisch rund um dich."
@@ -74,24 +89,6 @@ export default function RadarScreen() {
                     variant="primary"
                     onPress={() => {
                         router.push("/(tabs)/map");
-                    }}
-                />
-
-                <RadarStartCTA
-                    title="Favoriten anzeigen"
-                    description="Deine gemerkten Standl auf einen Blick."
-                    icon="heart-outline"
-                    onPress={() => {
-                        setActiveView("favorites");
-                    }}
-                />
-
-                <RadarStartCTA
-                    title="PLZ eingeben"
-                    description="Such nach Standl in einem bestimmten Ort."
-                    icon="location-outline"
-                    onPress={() => {
-                        console.log("PLZ-Suche kommt später");
                     }}
                 />
             </View>
@@ -146,6 +143,7 @@ export default function RadarScreen() {
                         <StandlCard
                             key={standl.id}
                             standl={standl}
+                            isFavorite={favoriteStandlIds.includes(standl.id)}
                             onPress={() => {
                                 router.push(`/standl/${standl.id}`);
                             }}
