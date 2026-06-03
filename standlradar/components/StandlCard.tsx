@@ -1,27 +1,19 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Theme } from "@/constants/colors";
 
-type StandlCategory = "hendl" | "steckerlfisch";
+import { Theme } from "@/constants/colors";
+import type { Standl } from "@/types/standl";
 
 type StandlCardProps = {
-    name: string;
-    category: StandlCategory;
-    location: string;
-    status: string;
-    likes: number;
+    standl: Standl;
     onPress: () => void;
 };
 
-export function StandlCard({
-    name,
-    category,
-    location,
-    status,
-    likes,
-    onPress,
-}: StandlCardProps) {
-    const icon = category === "hendl" ? "🍗" : "🐟";
-    const likeLabel = category === "hendl" ? "Hendl-Likes" : "Fisch-Likes";
+export function StandlCard({ standl, onPress }: StandlCardProps) {
+    const icon = standl.category === "hendl" ? "🍗" : "🐟";
+    const categoryLabel =
+        standl.category === "hendl" ? "Hendlgriller" : "Steckerlfisch";
+    const likeLabel =
+        standl.category === "hendl" ? "Hendl-Likes" : "Fisch-Likes";
 
     return (
         <Pressable
@@ -33,12 +25,40 @@ export function StandlCard({
             </View>
 
             <View style={styles.content}>
-                <Text style={styles.name}>{name}</Text>
-                <Text style={styles.meta}>{location}</Text>
-                <Text style={styles.status}>{status}</Text>
-                <Text style={styles.likes}>
-                    {likes} {likeLabel}
+                <View style={styles.titleRow}>
+                    <Text style={styles.name}>{standl.name}</Text>
+
+                    {standl.isClaimed ? (
+                        <Text style={styles.claimedBadge}>Bestätigt</Text>
+                    ) : null}
+                </View>
+
+                <Text style={styles.meta}>
+                    {categoryLabel} · {standl.city}
                 </Text>
+
+                <Text style={styles.location}>{standl.locationName}</Text>
+
+                <Text
+                    style={[
+                        styles.status,
+                        standl.openingStatus.type === "temporaryClosed" && styles.error,
+                        standl.openingStatus.type === "likelyOpen" && styles.warning,
+                        standl.openingStatus.type === "unknown" && styles.neutral,
+                    ]}
+                >
+                    {standl.openingStatus.label}
+                </Text>
+
+                <View style={styles.footer}>
+                    <Text style={styles.likes}>
+                        {standl.likes} {likeLabel}
+                    </Text>
+
+                    {standl.distanceKm ? (
+                        <Text style={styles.distance}>{standl.distanceKm} km</Text>
+                    ) : null}
+                </View>
             </View>
         </Pressable>
     );
@@ -71,25 +91,65 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
     },
+    titleRow: {
+        flexDirection: "row",
+        gap: 8,
+        alignItems: "center",
+        marginBottom: 4,
+    },
     name: {
         color: Theme.textPrimary,
         fontSize: 18,
         fontWeight: "700",
-        marginBottom: 4,
+        flex: 1,
+    },
+    claimedBadge: {
+        color: Theme.textPrimary,
+        backgroundColor: Theme.success,
+        fontSize: 11,
+        fontWeight: "700",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+        overflow: "hidden",
     },
     meta: {
         color: Theme.textSecondary,
         fontSize: 14,
-        marginBottom: 6,
+        marginBottom: 4,
+    },
+    location: {
+        color: Theme.textSecondary,
+        fontSize: 13,
+        marginBottom: 8,
     },
     status: {
         color: Theme.success,
         fontSize: 14,
         fontWeight: "700",
-        marginBottom: 6,
+        marginBottom: 8,
+    },
+    warning: {
+        color: Theme.warning,
+    },
+    error: {
+        color: Theme.error,
+    },
+    neutral: {
+        color: Theme.textSecondary,
+    },
+    footer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        gap: 12,
     },
     likes: {
         color: Theme.accent,
+        fontSize: 13,
+        fontWeight: "600",
+    },
+    distance: {
+        color: Theme.textSecondary,
         fontSize: 13,
         fontWeight: "600",
     },

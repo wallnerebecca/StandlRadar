@@ -6,6 +6,7 @@ import { FilterChip } from "@/components/FilterChip";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SecondaryButton } from "@/components/SecondaryButton";
 import { StandlCard } from "@/components/StandlCard";
+import { mockStandl } from "@/constants/mockStandl";
 import { Theme } from "@/constants/colors";
 
 export default function RadarScreen() {
@@ -51,27 +52,15 @@ export default function RadarScreen() {
             <Text style={styles.sectionTitle}>Standl in deiner Nähe</Text>
 
             <View style={styles.cardList}>
-                <StandlCard
-                    name="Hendl Maxl"
-                    category="hendl"
-                    location="Linz"
-                    status="Heute geöffnet"
-                    likes={24}
-                    onPress={() => {
-                        console.log("Hendl Maxl öffnen");
-                    }}
-                />
-
-                <StandlCard
-                    name="Fischstandl Donau"
-                    category="steckerlfisch"
-                    location="Ottensheim"
-                    status="Heute vermutlich da"
-                    likes={18}
-                    onPress={() => {
-                        console.log("Fischstandl Donau öffnen");
-                    }}
-                />
+                {mockStandl.map((standl) => (
+                    <StandlCard
+                        key={standl.id}
+                        standl={standl}
+                        onPress={() => {
+                            console.log("Standl öffnen:", standl.id);
+                        }}
+                    />
+                ))}
             </View>
         </ScrollView>
     );
