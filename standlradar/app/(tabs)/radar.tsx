@@ -147,7 +147,7 @@ export default function RadarScreen() {
                             key={standl.id}
                             standl={standl}
                             onPress={() => {
-                                console.log("Standl öffnen:", standl.id);
+                                router.push(`/standl/${standl.id}`);
                             }}
                         />
                     ))}
