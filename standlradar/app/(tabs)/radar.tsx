@@ -9,12 +9,12 @@ import { SearchBar } from "@/components/SearchBar";
 import { SearchFavoriteToggle } from "@/components/SearchFavoriteToggle";
 import { StandlCard } from "@/components/StandlCard";
 import { Theme } from "@/constants/colors";
-import { mockStandl } from "@/constants/mockStandl";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { filterStandl } from "@/lib/filterStandl";
 import { useStandlFilters } from "@/contexts/StandlFilterContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getUserProfile } from "@/lib/userProfile";
+import { useStandl } from "@/hooks/useStandl";
 
 import type { UserProfile } from "@/types/user";
 
@@ -24,6 +24,11 @@ type ToggleValue = "search" | "favorites";
 
 export default function RadarScreen() {
     const [searchQuery, setSearchQuery] = useState("");
+    const {
+        standl,
+        isLoading: isStandlLoading,
+        errorMessage: standlErrorMessage,
+    } = useStandl();
     const {
         selectedCategory,
         setSelectedCategory,
@@ -58,14 +63,14 @@ export default function RadarScreen() {
 
     const filteredStandl = useMemo(() => {
         return filterStandl({
-            standl: mockStandl,
+            standl,
             searchQuery,
             selectedCategory,
             showOpenOnly,
             favoriteStandlIds,
             showFavoritesOnly: activeView === "favorites",
         });
-    }, [activeView, favoriteStandlIds, searchQuery, selectedCategory, showOpenOnly]);
+    }, [activeView, favoriteStandlIds, searchQuery, selectedCategory, showOpenOnly, standl]);
 
     return (
         <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -142,6 +147,14 @@ export default function RadarScreen() {
                     {filteredStandl.length} gefunden
                 </Text>
             </View>
+
+            {isStandlLoading ? (
+                <Text style={styles.infoText}>Standl werden geladen...</Text>
+            ) : null}
+
+            {standlErrorMessage ? (
+                <Text style={styles.errorText}>{standlErrorMessage}</Text>
+            ) : null}
 
             {filteredStandl.length > 0 ? (
                 <View style={styles.cardList}>
@@ -234,5 +247,15 @@ const styles = StyleSheet.create({
         color: Theme.textSecondary,
         fontSize: 15,
         lineHeight: 22,
+    },
+    infoText: {
+        color: Theme.textSecondary,
+        fontSize: 14,
+        marginBottom: 12,
+    },
+    errorText: {
+        color: Theme.error,
+        fontSize: 14,
+        marginBottom: 12,
     },
 });

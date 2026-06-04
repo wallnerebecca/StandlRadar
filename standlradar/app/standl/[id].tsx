@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { InfoRow } from "@/components/InfoRow";
 import { ImageFavoriteButton } from "@/components/ImageFavoriteButton";
@@ -9,14 +9,77 @@ import { OpeningStatusBadge } from "@/components/OpeningStatusBadge";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SecondaryButton } from "@/components/SecondaryButton";
 import { Theme } from "@/constants/colors";
-import { mockStandl } from "@/constants/mockStandl";
+
 import { CategoryLikeButton } from "@/components/CategoryLikeButton";
 import { useFavorites } from "@/contexts/FavoritesContext";
+import {
+    getSingleStandlFromFirestore,
+    hasUserLikedStandl,
+    toggleStandlLike,
+} from "@/lib/standlService";
+import { Standl } from "@/types/standl";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function StandlDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string; }>();
 
-    const standl = mockStandl.find((item) => item.id === id);
+    const [standl, setStandl] = useState<Standl | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState("");
+
+
+    useEffect(() => {
+        async function loadStandl() {
+            if (!id) {
+                setErrorMessage("Keine Standl-ID gefunden.");
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+                setErrorMessage("");
+
+                const firestoreStandl = await getSingleStandlFromFirestore(id);
+
+                if (!firestoreStandl) {
+                    setStandl(null);
+                    return;
+                }
+
+                setStandl(firestoreStandl);
+            } catch (error) {
+                console.warn("Standl konnte nicht geladen werden:", error);
+                setErrorMessage("Standl konnte nicht geladen werden.");
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        loadStandl();
+    }, [id]);
+
+    if (isLoading) {
+        return (
+            <View style={styles.notFoundContainer}>
+                <Text style={styles.notFoundTitle}>Standl wird geladen...</Text>
+            </View>
+        );
+    }
+
+    if (errorMessage) {
+        return (
+            <View style={styles.notFoundContainer}>
+                <Text style={styles.notFoundTitle}>Fehler</Text>
+                <Text style={styles.notFoundText}>{errorMessage}</Text>
+
+                <PrimaryButton
+                    label="Zurück zum Radar"
+                    onPress={() => router.replace("/(tabs)/radar")}
+                />
+            </View>
+        );
+    }
+
 
     if (!standl) {
         return (
@@ -34,21 +97,62 @@ export default function StandlDetailScreen() {
         );
     }
 
+    return <StandlDetailContent standl={standl} />;
+}
+
+function StandlDetailContent({ standl }: { standl: Standl; }) {
     const { isFavorite, toggleFavorite } = useFavorites();
     const favoriteActive = isFavorite(standl.id);
 
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(standl.likes);
+    const [isLikeSubmitting, setIsLikeSubmitting] = useState(false);
 
-    function handleLikePress() {
-        if (liked) {
-            setLiked(false);
-            setLikeCount((current) => current - 1);
+    useEffect(() => {
+        async function loadLikeStatus() {
+            if (!user) {
+                setLiked(false);
+                setLikeCount(standl.likes);
+                return;
+            }
+
+            try {
+                const userHasLiked = await hasUserLikedStandl(standl.id, user.uid);
+                setLiked(userHasLiked);
+                setLikeCount(standl.likes);
+            } catch (error) {
+                console.warn("Like-Status konnte nicht geladen werden:", error);
+                setLiked(false);
+            }
+        }
+
+        loadLikeStatus();
+    }, [standl.id, standl.likes, user]);
+
+    const { user } = useAuth();
+
+    async function handleLikePress() {
+        if (!user) {
+            router.push("/auth/login");
             return;
         }
 
-        setLiked(true);
-        setLikeCount((current) => current + 1);
+        if (isLikeSubmitting) {
+            return;
+        }
+
+        setIsLikeSubmitting(true);
+
+        try {
+            const result = await toggleStandlLike(standl.id, user.uid);
+
+            setLiked(result.liked);
+            setLikeCount(result.likes);
+        } catch (error) {
+            console.warn("Like konnte nicht gespeichert werden:", error);
+        } finally {
+            setIsLikeSubmitting(false);
+        }
     }
 
     const categoryLabel =
@@ -81,6 +185,7 @@ export default function StandlDetailScreen() {
                         category={standl.category}
                         count={likeCount}
                         liked={liked}
+                        disabled={isLikeSubmitting}
                         onPress={handleLikePress}
                     />
                 </View>

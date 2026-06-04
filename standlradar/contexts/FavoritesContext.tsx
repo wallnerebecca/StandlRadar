@@ -6,14 +6,23 @@ import {
     useContext,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+    addUserFavoriteStandl,
+    getUserFavoriteStandlIds,
+    removeUserFavoriteStandl,
+    saveUserFavoriteStandlIds,
+} from "@/lib/favoriteService";
 
 const FAVORITES_STORAGE_KEY = "standlradar:favorites";
 
 type FavoritesContextValue = {
     favoriteStandlIds: string[];
     isLoading: boolean;
+    isSyncing: boolean;
     isFavorite: (standlId: string) => boolean;
     toggleFavorite: (standlId: string) => Promise<void>;
 };
@@ -23,8 +32,13 @@ const FavoritesContext = createContext<FavoritesContextValue | undefined>(
 );
 
 export function FavoritesProvider({ children }: PropsWithChildren) {
+
+    const { user } = useAuth();
+
     const [favoriteStandlIds, setFavoriteStandlIds] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const lastSyncedUserIdRef = useRef<string | null>(null);
 
     useEffect(() => {
         async function loadFavorites() {
@@ -53,6 +67,41 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
 
         loadFavorites();
     }, []);
+
+    useEffect(() => {
+        async function syncFavoritesAfterLogin() {
+            if (!user || isLoading) {
+                lastSyncedUserIdRef.current = null;
+                return;
+            }
+
+            if (lastSyncedUserIdRef.current === user.uid) {
+                return;
+            }
+
+            lastSyncedUserIdRef.current = user.uid;
+
+            setIsSyncing(true);
+
+            try {
+                const remoteFavoriteStandlIds = await getUserFavoriteStandlIds(user.uid);
+
+                const mergedFavoriteStandlIds = Array.from(
+                    new Set([...favoriteStandlIds, ...remoteFavoriteStandlIds])
+                );
+
+                await saveFavorites(mergedFavoriteStandlIds);
+                await saveUserFavoriteStandlIds(user.uid, mergedFavoriteStandlIds);
+            } catch (error) {
+                console.warn("Favoriten konnten nicht synchronisiert werden:", error);
+                lastSyncedUserIdRef.current = null;
+            } finally {
+                setIsSyncing(false);
+            }
+        }
+
+        syncFavoritesAfterLogin();
+    }, [user, isLoading]);
 
     const saveFavorites = useCallback(async (nextFavoriteStandlIds: string[]) => {
         try {
@@ -83,18 +132,30 @@ export function FavoritesProvider({ children }: PropsWithChildren) {
                 : [...favoriteStandlIds, standlId];
 
             await saveFavorites(nextFavoriteStandlIds);
+
+            if (!user) {
+                return;
+            }
+
+            if (alreadyFavorite) {
+                await removeUserFavoriteStandl(user.uid, standlId);
+                return;
+            }
+
+            await addUserFavoriteStandl(user.uid, standlId);
         },
-        [favoriteStandlIds, saveFavorites]
+        [favoriteStandlIds, saveFavorites, user]
     );
 
     const value = useMemo(
         () => ({
             favoriteStandlIds,
             isLoading,
+            isSyncing,
             isFavorite,
             toggleFavorite,
         }),
-        [favoriteStandlIds, isLoading, isFavorite, toggleFavorite]
+        [favoriteStandlIds, isLoading, isSyncing, isFavorite, toggleFavorite]
     );
 
     return (

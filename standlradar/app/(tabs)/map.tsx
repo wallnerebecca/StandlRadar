@@ -8,9 +8,8 @@ import { FilterChip } from "@/components/FilterChip";
 import { StandlCard } from "@/components/StandlCard";
 import { StandlMapMarker } from "@/components/StandlMapMarker";
 import { Theme } from "@/constants/colors";
-import { mockStandl } from "@/constants/mockStandl";
+import { useStandl } from "@/hooks/useStandl";
 import { useFavorites } from "@/contexts/FavoritesContext";
-import type { Standl } from "@/types/standl";
 import { useStandlFilters } from "@/contexts/StandlFilterContext";
 import { filterStandl } from "@/lib/filterStandl";
 
@@ -22,17 +21,26 @@ export default function MapScreen() {
         showOpenOnly,
         toggleOpenOnly,
     } = useStandlFilters();
-    const [selectedStandl, setSelectedStandl] = useState<Standl | null>(null);
+    const [selectedStandlId, setSelectedStandlId] = useState<string | null>(null);
 
     const { favoriteStandlIds } = useFavorites();
+    const { standl } = useStandl();
 
     const filteredStandl = useMemo(() => {
         return filterStandl({
-            standl: mockStandl,
+            standl,
             selectedCategory,
             showOpenOnly,
         });
-    }, [selectedCategory, showOpenOnly]);
+    }, [selectedCategory, showOpenOnly, standl]);
+
+    const selectedStandl = useMemo(() => {
+        if (!selectedStandlId) {
+            return null;
+        }
+
+        return filteredStandl.find((item) => item.id === selectedStandlId) ?? null;
+    }, [selectedStandlId, filteredStandl]);
 
     return (
 
@@ -82,7 +90,7 @@ export default function MapScreen() {
                         <StandlMapMarker
                             key={standl.id}
                             standl={standl}
-                            onPress={() => setSelectedStandl(standl)}
+                            onPress={() => setSelectedStandlId(standl.id)}
                         />
                     ))}
                 </MapView>
@@ -101,7 +109,7 @@ export default function MapScreen() {
                         <View style={styles.previewHeader}>
                             <Text style={styles.previewTitle}>Ausgewähltes Standl</Text>
 
-                            <Pressable onPress={() => setSelectedStandl(null)}>
+                            <Pressable onPress={() => setSelectedStandlId(null)}>
                                 <Text style={styles.closeText}>Schließen</Text>
                             </Pressable>
                         </View>
@@ -202,4 +210,4 @@ const styles = StyleSheet.create({
         fontSize: 13,
         lineHeight: 18,
     },
-});;;
+});
