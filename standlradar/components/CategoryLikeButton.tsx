@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Image, Pressable, StyleSheet, Text } from "react-native";
 
 import { Theme } from "@/constants/colors";
 import type { StandlCategory } from "@/types/standl";
@@ -16,7 +16,9 @@ export function CategoryLikeButton({
     liked,
     onPress,
 }: CategoryLikeButtonProps) {
-    const icon = category === "hendl" ? "🍗" : "🐟";
+    const icon = category === "hendl"
+        ? require("../assets/images/Icon_Hendl.png")
+        : require("../assets/images/Icon_Fisch.png");
 
     return (
         <Pressable
@@ -27,7 +29,7 @@ export function CategoryLikeButton({
                 pressed && styles.pressed,
             ]}
         >
-            <Text style={[styles.icon, !liked && styles.iconMuted]}>{icon}</Text>
+            <Image source={icon} style={[styles.icon, !liked && styles.iconMuted]} />
             <Text style={[styles.count, liked && styles.countLiked]}>{count}</Text>
         </Pressable>
     );
@@ -53,7 +55,9 @@ const styles = StyleSheet.create({
         opacity: 0.8,
     },
     icon: {
-        fontSize: 20,
+        width: 22,
+        height: 22,
+        resizeMode: "contain",
     },
     iconMuted: {
         opacity: 0.38,
