@@ -1,4 +1,5 @@
 import {
+    addDoc,
     collection,
     doc,
     getDoc,
@@ -6,6 +7,8 @@ import {
     GeoPoint,
     runTransaction,
     serverTimestamp,
+    where,
+    query,
 } from "firebase/firestore";
 
 import { firestoreDb } from "@/lib/firebase";
@@ -28,6 +31,9 @@ type FirestoreStandl = {
     openingStatus?: FirestoreOpeningStatus;
     likes?: number;
     isClaimed?: boolean;
+    ownerId?: string;
+    createdBy?: string;
+    source?: "owner" | "community";
 };
 
 export function mapFirestoreStandl(documentId: string, data: FirestoreStandl): Standl {
@@ -51,6 +57,7 @@ export function mapFirestoreStandl(documentId: string, data: FirestoreStandl): S
         },
         likes: data.likes ?? 0,
         isClaimed: data.isClaimed ?? false,
+        ownerId: data.ownerId ?? undefined,
     };
 }
 
@@ -72,6 +79,16 @@ export async function getSingleStandlFromFirestore(standlId: string) {
     }
 
     return mapFirestoreStandl(snapshot.id, snapshot.data() as FirestoreStandl);
+}
+
+export async function getOwnerStandlFromFirestore(ownerId: string) {
+    const standlRef = collection(firestoreDb, "standl");
+    const ownerStandlQuery = query(standlRef, where("ownerId", "==", ownerId));
+    const snapshot = await getDocs(ownerStandlQuery);
+
+    return snapshot.docs.map((standlDoc) =>
+        mapFirestoreStandl(standlDoc.id, standlDoc.data() as FirestoreStandl)
+    );
 }
 
 export async function hasUserLikedStandl(standlId: string, userId: string) {
@@ -127,4 +144,47 @@ export async function toggleStandlLike(standlId: string, userId: string) {
             likes: nextLikes,
         };
     });
+}
+
+type CreateStandlInput = {
+    name: string;
+    category: Standl["category"];
+    locationName: string;
+    postalCode: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+    createdBy: string;
+    mode: "owner" | "community";
+};
+
+export async function createStandlInFirestore(input: CreateStandlInput) {
+    const standlRef = collection(firestoreDb, "standl");
+
+    const isOwnerCreated = input.mode === "owner";
+
+    const newStandl = {
+        name: input.name,
+        category: input.category,
+        locationName: input.locationName,
+        postalCode: input.postalCode,
+        city: input.city,
+        location: new GeoPoint(input.latitude, input.longitude),
+        openingStatus: {
+            type: "unknown",
+            label: "Keine Standzeit bekannt",
+            source: isOwnerCreated ? "owner" : "community",
+        },
+        likes: 0,
+        isClaimed: isOwnerCreated,
+        ownerId: isOwnerCreated ? input.createdBy : null,
+        createdBy: input.createdBy,
+        source: isOwnerCreated ? "owner" : "community",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    };
+
+    const createdDoc = await addDoc(standlRef, newStandl);
+
+    return createdDoc.id;
 }

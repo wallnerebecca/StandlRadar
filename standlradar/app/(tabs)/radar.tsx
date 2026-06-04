@@ -87,11 +87,22 @@ export default function RadarScreen() {
                         description="Verwalte Zeiten, Preise und Infos zu deinen Standl."
                         icon="storefront-outline"
                         onPress={() => {
-                            //router.push("/owner");
-                            console.log("Zu meinen Standl");
+                            router.push("/owner");
                         }}
                     />
                 ) : null}
+
+                <RadarStartCTA
+                    title="Standl vorschlagen"
+                    description="Füge ein Hendl- oder Steckerlfisch-Standl zur Karte hinzu."
+                    icon="add-circle-outline"
+                    onPress={() => {
+                        router.push({
+                            pathname: "/standl/new",
+                            params: { mode: "community" },
+                        });
+                    }}
+                />
 
                 <RadarStartCTA
                     title="Standl in der Nähe finden"
@@ -102,6 +113,8 @@ export default function RadarScreen() {
                         router.push("/(tabs)/map");
                     }}
                 />
+
+
             </View>
 
             <View style={styles.searchArea}>
