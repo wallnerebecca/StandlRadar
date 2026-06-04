@@ -10,32 +10,28 @@ import { StandlMapMarker } from "@/components/StandlMapMarker";
 import { Theme } from "@/constants/colors";
 import { mockStandl } from "@/constants/mockStandl";
 import { useFavorites } from "@/contexts/FavoritesContext";
-import type { Standl, StandlCategory } from "@/types/standl";
+import type { Standl } from "@/types/standl";
+import { useStandlFilters } from "@/contexts/StandlFilterContext";
+import { filterStandl } from "@/lib/filterStandl";
 
-type CategoryFilter = "all" | StandlCategory;
 
 export default function MapScreen() {
-    const [selectedCategory, setSelectedCategory] =
-        useState<CategoryFilter>("all");
-    const [showOpenOnly, setShowOpenOnly] = useState(false);
+    const {
+        selectedCategory,
+        setSelectedCategory,
+        showOpenOnly,
+        toggleOpenOnly,
+    } = useStandlFilters();
     const [selectedStandl, setSelectedStandl] = useState<Standl | null>(null);
 
     const { favoriteStandlIds } = useFavorites();
 
     const filteredStandl = useMemo(() => {
-        let result = mockStandl;
-
-        if (selectedCategory !== "all") {
-            result = result.filter((standl) => standl.category === selectedCategory);
-        }
-
-        if (showOpenOnly) {
-            result = result.filter((standl) =>
-                ["open", "likelyOpen"].includes(standl.openingStatus.type)
-            );
-        }
-
-        return result;
+        return filterStandl({
+            standl: mockStandl,
+            selectedCategory,
+            showOpenOnly,
+        });
     }, [selectedCategory, showOpenOnly]);
 
     return (
@@ -68,7 +64,7 @@ export default function MapScreen() {
                     <FilterChip
                         label="Jetzt geöffnet"
                         selected={showOpenOnly}
-                        onPress={() => setShowOpenOnly((current) => !current)}
+                        onPress={toggleOpenOnly}
                     />
                 </View>
             </View>
@@ -91,6 +87,14 @@ export default function MapScreen() {
                     ))}
                 </MapView>
 
+                {filteredStandl.length === 0 ? (
+                    <View style={styles.mapEmptyState}>
+                        <Text style={styles.mapEmptyTitle}>Keine Standl gefunden</Text>
+                        <Text style={styles.mapEmptyText}>
+                            Ändere deine Filter oder deaktiviere „Jetzt geöffnet“.
+                        </Text>
+                    </View>
+                ) : null}
 
                 {selectedStandl ? (
                     <View style={styles.preview}>
@@ -175,5 +179,27 @@ const styles = StyleSheet.create({
         color: Theme.accent,
         fontSize: 13,
         fontWeight: "700",
+    },
+    mapEmptyState: {
+        position: "absolute",
+        left: 16,
+        right: 16,
+        top: 16,
+        backgroundColor: Theme.surface,
+        borderColor: Theme.border,
+        borderWidth: 1,
+        borderRadius: 18,
+        padding: 14,
+    },
+    mapEmptyTitle: {
+        color: Theme.textPrimary,
+        fontSize: 16,
+        fontWeight: "800",
+        marginBottom: 4,
+    },
+    mapEmptyText: {
+        color: Theme.textSecondary,
+        fontSize: 13,
+        lineHeight: 18,
     },
 });;;
