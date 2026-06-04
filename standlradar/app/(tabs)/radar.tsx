@@ -11,54 +11,35 @@ import { StandlCard } from "@/components/StandlCard";
 import { Theme } from "@/constants/colors";
 import { mockStandl } from "@/constants/mockStandl";
 import { useFavorites } from "@/contexts/FavoritesContext";
+import { filterStandl } from "@/lib/filterStandl";
+import { useStandlFilters } from "@/contexts/StandlFilterContext";
 
-import type { StandlCategory } from "@/types/standl";
 
 
-type CategoryFilter = "all" | StandlCategory;
 type ToggleValue = "search" | "favorites";
 
 export default function RadarScreen() {
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedCategory, setSelectedCategory] =
-        useState<CategoryFilter>("all");
-    const [showOpenOnly, setShowOpenOnly] = useState(false);
+    const {
+        selectedCategory,
+        setSelectedCategory,
+        showOpenOnly,
+        toggleOpenOnly,
+    } = useStandlFilters();
     const [activeView, setActiveView] = useState<ToggleValue>("search");
     const userRole: "user" | "owner" = "owner";
 
     const { favoriteStandlIds } = useFavorites();
 
     const filteredStandl = useMemo(() => {
-        let result = mockStandl;
-
-        if (activeView === "favorites") {
-            result = result.filter((standl) => favoriteStandlIds.includes(standl.id));
-        }
-
-        if (selectedCategory !== "all") {
-            result = result.filter((standl) => standl.category === selectedCategory);
-        }
-
-        if (showOpenOnly) {
-            result = result.filter((standl) =>
-                ["open", "likelyOpen"].includes(standl.openingStatus.type)
-            );
-        }
-
-        const normalizedQuery = searchQuery.trim().toLowerCase();
-
-        if (normalizedQuery.length > 0) {
-            result = result.filter((standl) => {
-                return (
-                    standl.name.toLowerCase().includes(normalizedQuery) ||
-                    standl.city.toLowerCase().includes(normalizedQuery) ||
-                    standl.locationName.toLowerCase().includes(normalizedQuery) ||
-                    standl.postalCode.includes(normalizedQuery)
-                );
-            });
-        }
-
-        return result;
+        return filterStandl({
+            standl: mockStandl,
+            searchQuery,
+            selectedCategory,
+            showOpenOnly,
+            favoriteStandlIds,
+            showFavoritesOnly: activeView === "favorites",
+        });
     }, [activeView, favoriteStandlIds, searchQuery, selectedCategory, showOpenOnly]);
 
     return (
@@ -123,7 +104,7 @@ export default function RadarScreen() {
                 <FilterChip
                     label="Jetzt geöffnet"
                     selected={showOpenOnly}
-                    onPress={() => setShowOpenOnly((current) => !current)}
+                    onPress={toggleOpenOnly}
                 />
             </View>
 
@@ -154,14 +135,14 @@ export default function RadarScreen() {
                 <View style={styles.emptyState}>
                     <Text style={styles.emptyTitle}>
                         {activeView === "favorites"
-                            ? "Noch keine Favoriten gefunden"
+                            ? "Keine Favoriten gefunden"
                             : "Keine Standl gefunden"}
                     </Text>
 
                     <Text style={styles.emptyText}>
                         {activeView === "favorites"
                             ? "Speichere Standl als Favorit, damit du sie hier schnell wiederfindest."
-                            : "Versuch eine andere Suche oder ändere deine Filter."}
+                            : "Versuche eine andere Suche oder ändere deine Filter."}
                     </Text>
                 </View>
             )}
