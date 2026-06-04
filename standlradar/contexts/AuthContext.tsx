@@ -14,12 +14,19 @@ import {
     useState,
 } from "react";
 
+import { createUserProfile } from "@/lib/userProfile";
+import type { UserRole } from "@/types/user";
 import { firebaseAuth } from "@/lib/firebase";
 
 type AuthContextValue = {
     user: User | null;
     isLoading: boolean;
-    registerWithEmail: (email: string, password: string) => Promise<void>;
+    registerWithEmail: (
+        email: string,
+        password: string,
+        username: string,
+        role?: UserRole
+    ) => Promise<void>;
     loginWithEmail: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
 };
@@ -39,8 +46,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return unsubscribe;
     }, []);
 
-    async function registerWithEmail(email: string, password: string) {
-        await createUserWithEmailAndPassword(firebaseAuth, email, password);
+    async function registerWithEmail(email: string, password: string,
+        username: string,
+        role: UserRole = "user"
+    ) {
+        const userCredential = await createUserWithEmailAndPassword(
+            firebaseAuth,
+            email,
+            password
+        );
+        await createUserProfile(userCredential.user, username, role);
     }
 
     async function loginWithEmail(email: string, password: string) {

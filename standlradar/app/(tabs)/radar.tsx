@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { AppHeader } from "@/components/AppHeader";
@@ -13,6 +13,10 @@ import { mockStandl } from "@/constants/mockStandl";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { filterStandl } from "@/lib/filterStandl";
 import { useStandlFilters } from "@/contexts/StandlFilterContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserProfile } from "@/lib/userProfile";
+
+import type { UserProfile } from "@/types/user";
 
 
 
@@ -27,7 +31,28 @@ export default function RadarScreen() {
         toggleOpenOnly,
     } = useStandlFilters();
     const [activeView, setActiveView] = useState<ToggleValue>("search");
-    const userRole: "user" | "owner" = "owner";
+
+    const { user } = useAuth();
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+    useEffect(() => {
+        async function loadUserProfile() {
+            if (!user) {
+                setUserProfile(null);
+                return;
+            }
+
+            try {
+                const profile = await getUserProfile(user.uid);
+                setUserProfile(profile);
+            } catch (error) {
+                console.warn("Userprofil konnte nicht geladen werden:", error);
+                setUserProfile(null);
+            }
+        }
+
+        loadUserProfile();
+    }, [user]);
 
     const { favoriteStandlIds } = useFavorites();
 
@@ -51,7 +76,7 @@ export default function RadarScreen() {
 
             <View style={styles.ctaList}>
 
-                {userRole === "owner" ? (
+                {userProfile?.role === "owner" ? (
                     <RadarStartCTA
                         title="Zu meinen Standl"
                         description="Verwalte Zeiten, Preise und Infos zu deinen Standl."

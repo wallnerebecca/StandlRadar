@@ -1,16 +1,48 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
 import { router } from "expo-router";
+
 import { AppHeader } from "@/components/AppHeader";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { SecondaryButton } from "@/components/SecondaryButton";
 import { Theme } from "@/constants/colors";
 import { firebaseApp } from "@/lib/firebase";
 
+import { getUserProfile } from "@/lib/userProfile";
+import type { UserProfile } from "@/types/user";
+
 import { useAuth } from "@/contexts/AuthContext";
+
 
 export default function ProfileScreen() {
 
     const { user, isLoading, logout } = useAuth();
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [isProfileLoading, setIsProfileLoading] = useState(false);
+
+    useEffect(() => {
+        async function loadUserProfile() {
+            if (!user) {
+                setUserProfile(null);
+                return;
+            }
+
+            setIsProfileLoading(true);
+
+            try {
+                const profile = await getUserProfile(user.uid);
+                setUserProfile(profile);
+            } catch (error) {
+                console.warn("Userprofil konnte nicht geladen werden:", error);
+                setUserProfile(null);
+            } finally {
+                setIsProfileLoading(false);
+            }
+        }
+
+        loadUserProfile();
+    }, [user]);
+
 
     return (
         <View style={styles.container}>
@@ -23,8 +55,17 @@ export default function ProfileScreen() {
                 <Text style={styles.hint}>Loginstatus wird geladen...</Text>
             ) : user ? (
                 <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Eingeloggt</Text>
+                    <Text style={styles.cardTitle}>
+                        {isProfileLoading
+                            ? "Profil wird geladen..."
+                            : userProfile?.username ?? "Eingeloggt"}
+                    </Text>
+
                     <Text style={styles.cardText}>{user.email}</Text>
+
+                    <Text style={styles.cardText}>
+                        Rolle: {userProfile?.role === "owner" ? "Standl-Besitzer*in" : "Nutzer*in"}
+                    </Text>
 
                     <PrimaryButton label="Ausloggen" onPress={logout} />
                 </View>

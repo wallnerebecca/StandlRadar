@@ -14,18 +14,26 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { SecondaryButton } from "@/components/SecondaryButton";
 import { Theme } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
+import type { UserRole } from "@/types/user";
 
 export default function RegisterScreen() {
     const { registerWithEmail } = useAuth();
 
     const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
+    const [role, setRole] = useState<UserRole>("user");
     const [password, setPassword] = useState("");
     const [passwordRepeat, setPasswordRepeat] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     async function handleRegister() {
+
         setErrorMessage("");
+        if (username.trim().length < 2) {
+            setErrorMessage("Bitte gib einen Username ein.");
+            return;
+        }
 
         if (password !== passwordRepeat) {
             setErrorMessage("Die Passwörter stimmen nicht überein.");
@@ -40,7 +48,7 @@ export default function RegisterScreen() {
         setIsSubmitting(true);
 
         try {
-            await registerWithEmail(email.trim(), password);
+            await registerWithEmail(email.trim(), password, username, role);
             router.replace("/(tabs)/profile");
         } catch (error) {
             console.warn(error);
@@ -63,6 +71,15 @@ export default function RegisterScreen() {
                 </Text>
 
                 <View style={styles.form}>
+                    <TextInput
+                        value={username}
+                        onChangeText={setUsername}
+                        placeholder="Username"
+                        placeholderTextColor={Theme.textSecondary}
+                        autoCapitalize="none"
+                        style={styles.input}
+                    />
+
                     <TextInput
                         value={email}
                         onChangeText={setEmail}
@@ -90,6 +107,46 @@ export default function RegisterScreen() {
                         secureTextEntry
                         style={styles.input}
                     />
+
+                    <View style={styles.roleBox}>
+                        <Text style={styles.roleTitle}>Wie möchtest du StandlRadar nutzen?</Text>
+
+                        <View style={styles.roleButtons}>
+                            <Pressable
+                                onPress={() => setRole("user")}
+                                style={[
+                                    styles.roleButton,
+                                    role === "user" && styles.roleButtonActive,
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.roleButtonText,
+                                        role === "user" && styles.roleButtonTextActive,
+                                    ]}
+                                >
+                                    Ich suche Standl
+                                </Text>
+                            </Pressable>
+
+                            <Pressable
+                                onPress={() => setRole("owner")}
+                                style={[
+                                    styles.roleButton,
+                                    role === "owner" && styles.roleButtonActive,
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.roleButtonText,
+                                        role === "owner" && styles.roleButtonTextActive,
+                                    ]}
+                                >
+                                    Ich betreibe ein Standl
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </View>
 
                     {errorMessage ? (
                         <Text style={styles.errorText}>{errorMessage}</Text>
@@ -161,5 +218,41 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         textAlign: "center",
         marginTop: 6,
+    },
+    roleBox: {
+        backgroundColor: Theme.card,
+        borderColor: Theme.border,
+        borderWidth: 1,
+        borderRadius: 14,
+        padding: 14,
+        gap: 10,
+    },
+    roleTitle: {
+        color: Theme.textPrimary,
+        fontSize: 15,
+        fontWeight: "700",
+    },
+    roleButtons: {
+        gap: 8,
+    },
+    roleButton: {
+        backgroundColor: Theme.surface,
+        borderColor: Theme.border,
+        borderWidth: 1,
+        borderRadius: 12,
+        paddingVertical: 11,
+        paddingHorizontal: 12,
+    },
+    roleButtonActive: {
+        backgroundColor: Theme.secondary,
+        borderColor: Theme.secondary,
+    },
+    roleButtonText: {
+        color: Theme.textSecondary,
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    roleButtonTextActive: {
+        color: Theme.textPrimary,
     },
 });
