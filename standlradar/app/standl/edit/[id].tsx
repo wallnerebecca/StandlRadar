@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { ScreenState } from "@/components/layout/ScreenState";
 import { FormScreen } from "@/components/layout/FormScreen";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
@@ -157,33 +158,27 @@ export default function EditStandlScreen() {
 
     if (isLoading || isAuthLoading) {
         return (
-            <View style={styles.centeredScreen}>
-                <Text style={styles.infoText}>Standl wird geladen...</Text>
-            </View>
+            <ScreenState message="Standl wird geladen..." />
         );
     }
 
     if (!canEdit) {
         return (
-            <View style={styles.centeredScreen}>
-                <Text style={styles.errorTitle}>Bearbeiten nicht möglich</Text>
-
-                <Text style={styles.infoText}>
-                    {errorMessage || "Für dieses Standl fehlen die Berechtigungen."}
-                </Text>
-
-                {!user ? (
-                    <PrimaryButton
-                        label="Einloggen"
-                        onPress={() => router.push("/auth/login")}
-                    />
-                ) : null}
-
-                <SecondaryButton
-                    label="Zurück"
-                    onPress={() => router.back()}
-                />
-            </View>
+            <ScreenState
+                title="Bearbeiten nicht möglich"
+                message={
+                    errorMessage ||
+                    "Für dieses Standl fehlen die Berechtigungen."
+                }
+                primaryActionLabel={!user ? "Einloggen" : undefined}
+                onPrimaryAction={
+                    !user
+                        ? () => router.push("/auth/login")
+                        : undefined
+                }
+                secondaryActionLabel="Zurück"
+                onSecondaryAction={() => router.back()}
+            />
         );
     }
 
@@ -256,23 +251,11 @@ const styles = StyleSheet.create({
     content: {
         paddingBottom: 80,
     },
-    centeredScreen: {
-        flex: 1,
-        backgroundColor: Theme.background,
-        padding: 24,
-        justifyContent: "center",
-        gap: 16,
-    },
     title: {
         color: Theme.textPrimary,
         fontSize: 30,
         fontWeight: "800",
         marginBottom: 8,
-    },
-    errorTitle: {
-        color: Theme.textPrimary,
-        fontSize: 26,
-        fontWeight: "800",
     },
     subtitle: {
         color: Theme.textSecondary,
@@ -282,11 +265,6 @@ const styles = StyleSheet.create({
     },
     form: {
         gap: 12,
-    },
-    infoText: {
-        color: Theme.textSecondary,
-        fontSize: 15,
-        lineHeight: 22,
     },
     errorText: {
         color: Theme.error,

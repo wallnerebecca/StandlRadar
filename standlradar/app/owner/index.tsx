@@ -7,12 +7,12 @@ import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { Theme } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserProfile } from "@/lib/userProfile";
+import { getUserProfile } from "@/lib/userProfileService";
 import type { UserProfile } from "@/types/user";
 import { Standl } from "@/types/standl";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { getOwnerStandlFromFirestore } from "@/lib/standlService";
-import { StandlCard } from "@/components/StandlCard";
+import { StandlCard } from "@/components/standl/StandlCard";
 
 export default function OwnerScreen() {
     const { user, isLoading } = useAuth();

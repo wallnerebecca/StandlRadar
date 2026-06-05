@@ -6,9 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
 import { FilterChip } from "@/components/buttons/FilterChip";
 import { RadarStartCTA } from "@/components/buttons/RadarStartCTA";
-import { SearchBar } from "@/components/SearchBar";
-import { SearchFavoriteToggle } from "@/components/SearchFavoriteToggle";
-import { StandlCard } from "@/components/StandlCard";
+import { SearchBar } from "@/components/search/SearchBar";
+import { SearchFavoriteToggle } from "@/components/search/SearchFavoriteToggle";
+import { StandlCard } from "@/components/standl/StandlCard";
 import { StandlFilterChips } from "@/components/filters/StandlFilterContainer";
 
 import { Theme } from "@/constants/colors";
@@ -20,7 +20,7 @@ import { useUserLocation } from "@/contexts/UserLocationContext";
 
 import { filterStandl } from "@/lib/filterStandl";
 import { calculateDistanceKm } from "@/lib/calculateDistance";
-import { getUserProfile } from "@/lib/userProfile";
+import { getUserProfile } from "@/lib/userProfileService";
 
 import { useStandl } from "@/hooks/useStandl";
 
@@ -107,7 +107,7 @@ export default function RadarScreen() {
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.content}
-                showVerticalScrollIndicator={false}>
+                showsVerticalScrollIndicator={false}>
                 <AppHeader
                     title="StandlRadar"
                     subtitle="Servus, wos derfs heut sei?"

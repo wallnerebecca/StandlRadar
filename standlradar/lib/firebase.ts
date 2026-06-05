@@ -1,10 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { initializeApp } from "firebase/app";
-import {
-    getAuth,
-    getReactNativePersistence,
-    initializeAuth,
-} from "firebase/auth";
+import { getAuth, initializeAuth } from "firebase/auth";
+
+// @ts-expect-error Firebase löst für React Native den Runtime-Export korrekt auf,
+// aber die verwendeten TypeScript-Deklarationen enthalten ihn nicht.
+import { getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 

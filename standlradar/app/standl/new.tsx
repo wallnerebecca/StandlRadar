@@ -36,11 +36,6 @@ export default function NewStandlScreen() {
             ? "Dieses Standl wird direkt deinem Besitzerkonto zugeordnet."
             : "Dieses Standl wird als Community-Vorschlag gespeichert.";
 
-    function getLocationNameValue() {
-        return locationForm.locationName.trim();
-    }
-
-
     async function handleCreateStandl() {
         setErrorMessage("");
 
@@ -75,7 +70,7 @@ export default function NewStandlScreen() {
             const createdStandlId = await createStandlInFirestore({
                 name: name.trim(),
                 category,
-                locationName: getLocationNameValue(),
+                locationName: locationForm.locationName.trim(),
                 street: locationForm.street.trim(),
                 streetNumber: locationForm.streetNumber.trim(),
                 postalCode: locationForm.postalCode.trim(),

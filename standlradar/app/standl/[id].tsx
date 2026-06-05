@@ -3,10 +3,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
 
+import { ScreenState } from "@/components/layout/ScreenState";
 import { ScreenContainer } from "@/components/layout/ScreenContainer";
-import { InfoRow } from "@/components/InfoRow";
+import { InfoRow } from "@/components/standl/InfoRow";
 import { ImageFavoriteButton } from "@/components/buttons/ImageFavoriteButton";
-import { OpeningStatusBadge } from "@/components/OpeningStatusBadge";
+import { OpeningStatusBadge } from "@/components/standl/OpeningStatusBadge";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { CategoryLikeButton } from "@/components/buttons/CategoryLikeButton";
@@ -67,40 +68,20 @@ export default function StandlDetailScreen() {
 
     if (isLoading) {
         return (
-            <ScreenContainer style={styles.notFoundContainer}>
-                <Text style={styles.notFoundTitle}>Standl wird geladen...</Text>
-            </ScreenContainer>
+            <ScreenState message="Standl wird geladen..." />
         );
     }
-
-    if (errorMessage) {
-        return (
-            <ScreenContainer style={styles.notFoundContainer}>
-                <Text style={styles.notFoundTitle}>Fehler</Text>
-                <Text style={styles.notFoundText}>{errorMessage}</Text>
-
-                <PrimaryButton
-                    label="Zurück zum Radar"
-                    onPress={() => router.replace("/(tabs)/radar")}
-                />
-            </ScreenContainer>
-        );
-    }
-
 
     if (!standl) {
         return (
-            <ScreenContainer style={styles.notFoundContainer}>
-                <Text style={styles.notFoundTitle}>Standl nicht gefunden</Text>
-                <Text style={styles.notFoundText}>
-                    Dieses Standl wurde nicht in der Datenbank gefunden.
-                </Text>
-
-                <PrimaryButton
-                    label="Zurück zum Radar"
-                    onPress={() => router.replace("/(tabs)/radar")}
-                />
-            </ScreenContainer>
+            <ScreenState
+                title="Standl nicht gefunden"
+                message="Dieses Standl wurde nicht in der Datenbank gefunden."
+                primaryActionLabel="Zurück zum Radar"
+                onPrimaryAction={() =>
+                    router.replace("/(tabs)/radar")
+                }
+            />
         );
     }
 
@@ -435,21 +416,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 21,
     },
-    notFoundContainer: {
-        flexGrow: 1,
-        justifyContent: "center",
-        gap: 16,
-    },
-    notFoundTitle: {
-        color: Theme.textPrimary,
-        fontSize: 26,
-        fontWeight: "800",
-    },
-    notFoundText: {
-        color: Theme.textSecondary,
-        fontSize: 15,
-        lineHeight: 22,
-    },
     imageWrapper: {
         position: "relative",
         marginBottom: 22,
@@ -485,5 +451,9 @@ const styles = StyleSheet.create({
         },
         shadowOpacity: 0.25,
         shadowRadius: 5,
+    },
+    editButtonPressed: {
+        opacity: 0.8,
+        transform: [{ scale: 0.96 }],
     },
 });

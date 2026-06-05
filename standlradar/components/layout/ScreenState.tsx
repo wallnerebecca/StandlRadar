@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 
-import { PrimaryButton } from "@/components/PrimaryButton";
-import { SecondaryButton } from "@/components/SecondaryButton";
+import { PrimaryButton } from "@/components/buttons/PrimaryButton";
+import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { Theme } from "@/constants/colors";
 
 type ScreenStateProps = {

@@ -8,7 +8,7 @@ import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { Theme } from "@/constants/colors";
 import { useUserLocation } from "@/contexts/UserLocationContext";
 
-import { getUserProfile } from "@/lib/userProfile";
+import { getUserProfile } from "@/lib/userProfileService";
 import type { UserProfile } from "@/types/user";
 
 import { useAuth } from "@/contexts/AuthContext";

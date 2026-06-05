@@ -5,8 +5,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { type Region } from "react-native-maps";
 
 import { FilterChip } from "@/components/buttons/FilterChip";
-import { StandlCard } from "@/components/StandlCard";
-import { StandlMapMarker } from "@/components/StandlMapMarker";
+import { StandlCard } from "@/components/standl/StandlCard";
+import { StandlMapMarker } from "@/components/standl/StandlMapMarker";
 import { StandlFilterChips } from "@/components/filters/StandlFilterContainer";
 
 
@@ -172,11 +172,6 @@ const styles = StyleSheet.create({
     },
     map: {
         flex: 1,
-    },
-    filterBar: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 8,
     },
     preview: {
         position: "absolute",

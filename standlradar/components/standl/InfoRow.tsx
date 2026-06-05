@@ -21,7 +21,7 @@ export function InfoRow({ icon, label, value, onPress }: InfoRowProps) {
                 />
             </View>
 
-            <View style={styles.textContainer}>
+            <View style={styles.textBox}>
                 <Text style={styles.label}>{label}</Text>
                 <Text style={styles.value}>{value}</Text>
             </View>

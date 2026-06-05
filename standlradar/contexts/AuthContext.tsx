@@ -14,7 +14,7 @@ import {
     useState,
 } from "react";
 
-import { createUserProfile } from "@/lib/userProfile";
+import { createUserProfile } from "@/lib/userProfileService";
 import type { UserRole } from "@/types/user";
 import { firebaseAuth } from "@/lib/firebase";
 

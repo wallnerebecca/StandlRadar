@@ -9,7 +9,7 @@ import { formatStreetAddress } from "@/lib/formatStandlAddress";
 
 import { Theme } from "@/constants/colors";
 import type { Standl } from "@/types/standl";
-import { NavigationIconButton } from "./buttons/NavigationIconButton";
+import { NavigationIconButton } from "../buttons/NavigationIconButton";
 
 type StandlCardProps = {
     standl: Standl;
