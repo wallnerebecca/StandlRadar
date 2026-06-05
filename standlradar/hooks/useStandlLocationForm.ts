@@ -3,6 +3,8 @@ import { ScrollView } from "react-native";
 import type { MapPressEvent, Region } from "react-native-maps";
 import * as Location from "expo-location";
 
+import { useUserLocation } from "@/contexts/UserLocationContext";
+
 import type { LocationInputMode, SelectedLocation } from "@/types/standlForm";
 
 const INITIAL_MAP_REGION: Region = {
@@ -15,6 +17,11 @@ const INITIAL_MAP_REGION: Region = {
 export function useStandlLocationForm(
     setErrorMessage: (message: string) => void
 ) {
+    const {
+        permissionStatus,
+        requestLocationPermission,
+    } = useUserLocation();
+
     const scrollViewRef = useRef<ScrollView | null>(null);
 
     const [locationInputMode, setLocationInputMode] =
@@ -45,6 +52,22 @@ export function useStandlLocationForm(
         }
     }
 
+    async function ensureLocationPermission() {
+        if (permissionStatus === "granted") {
+            return true;
+        }
+
+        const granted = await requestLocationPermission();
+
+        if (!granted) {
+            setErrorMessage(
+                "Für die automatische Adresssuche braucht StandlRadar Zugriff auf Standortdienste. Du kannst die Angaben auch manuell eintragen."
+            );
+        }
+
+        return granted;
+    }
+
     async function handleMapPress(event: MapPressEvent) {
         const coordinate = event.nativeEvent.coordinate;
 
@@ -60,15 +83,11 @@ export function useStandlLocationForm(
         }
 
         try {
-            const permission = await Location.requestForegroundPermissionsAsync();
+            const hasPermission = await ensureLocationPermission();
 
-            if (permission.status !== "granted") {
-                setErrorMessage(
-                    "Für die automatische Adresssuche braucht StandlRadar Zugriff auf Standortdienste. Du kannst Ort und PLZ manuell eintragen."
-                );
+            if (!hasPermission) {
                 return;
             }
-
             const results = await Location.reverseGeocodeAsync(coordinate);
 
             if (results.length === 0) {
@@ -110,12 +129,9 @@ export function useStandlLocationForm(
         setIsSearchingAddress(true);
 
         try {
-            const permission = await Location.requestForegroundPermissionsAsync();
+            const hasPermission = await ensureLocationPermission();
 
-            if (permission.status !== "granted") {
-                setErrorMessage(
-                    "Für die automatische Adresssuche braucht StandlRadar Zugriff auf Standortdienste. Du kannst den Pin alternativ manuell auf der Karte setzen."
-                );
+            if (!hasPermission) {
                 return;
             }
 

@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppHeader } from "@/components/AppHeader";
 import { FilterChip } from "@/components/buttons/FilterChip";
@@ -8,12 +9,19 @@ import { RadarStartCTA } from "@/components/buttons/RadarStartCTA";
 import { SearchBar } from "@/components/SearchBar";
 import { SearchFavoriteToggle } from "@/components/SearchFavoriteToggle";
 import { StandlCard } from "@/components/StandlCard";
+import { StandlFilterChips } from "@/components/filters/StandlFilterContainer";
+
 import { Theme } from "@/constants/colors";
+
 import { useFavorites } from "@/contexts/FavoritesContext";
-import { filterStandl } from "@/lib/filterStandl";
 import { useStandlFilters } from "@/contexts/StandlFilterContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserLocation } from "@/contexts/UserLocationContext";
+
+import { filterStandl } from "@/lib/filterStandl";
+import { calculateDistanceKm } from "@/lib/calculateDistance";
 import { getUserProfile } from "@/lib/userProfile";
+
 import { useStandl } from "@/hooks/useStandl";
 
 import type { UserProfile } from "@/types/user";
@@ -38,6 +46,7 @@ export default function RadarScreen() {
     const [activeView, setActiveView] = useState<ToggleValue>("search");
 
     const { user } = useAuth();
+    const { userLocation } = useUserLocation();
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
     useEffect(() => {
@@ -70,134 +79,141 @@ export default function RadarScreen() {
             favoriteStandlIds,
             showFavoritesOnly: activeView === "favorites",
         });
-    }, [activeView, favoriteStandlIds, searchQuery, selectedCategory, showOpenOnly, standl]);
+    }, [activeView, favoriteStandlIds, searchQuery, selectedCategory, showOpenOnly, standl, userLocation]);
+
+    const sortedStandl = useMemo(() => {
+        if (!userLocation) {
+            return filteredStandl;
+        }
+
+        return [...filteredStandl].sort((firstStandl, secondStandl) => {
+            const firstDistance = calculateDistanceKm(userLocation, {
+                latitude: firstStandl.latitude,
+                longitude: firstStandl.longitude,
+            });
+
+            const secondDistance = calculateDistanceKm(userLocation, {
+                latitude: secondStandl.latitude,
+                longitude: secondStandl.longitude,
+            });
+
+            return firstDistance - secondDistance;
+        });
+
+    }, [filteredStandl, userLocation]);
 
     return (
-        <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-            <AppHeader
-                title="StandlRadar"
-                subtitle="Servus, wonach suchst du?"
-            />
-
-            <View style={styles.ctaList}>
-
-                {userProfile?.role === "owner" ? (
-                    <RadarStartCTA
-                        title="Zu meinen Standl"
-                        description="Verwalte Zeiten, Preise und Infos zu deinen Standl."
-                        icon="storefront-outline"
-                        onPress={() => {
-                            router.push("/owner");
-                        }}
-                    />
-                ) : null}
-
-                <RadarStartCTA
-                    title="Standl vorschlagen"
-                    description="Füge ein Hendl- oder Steckerlfisch-Standl zur Karte hinzu."
-                    icon="add-circle-outline"
-                    onPress={() => {
-                        router.push({
-                            pathname: "/standl/new",
-                            params: { mode: "community" },
-                        });
-                    }}
+        <SafeAreaView style={styles.screen} edges={["top"]}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.content}
+                showVerticalScrollIndicator={false}>
+                <AppHeader
+                    title="StandlRadar"
+                    subtitle="Servus, wos derfs heut sei?"
                 />
 
-                <RadarStartCTA
-                    title="Standl in der Nähe finden"
-                    description="Zeig dir Hendl und Steckerlfisch rund um dich."
-                    icon="navigate-outline"
-                    variant="primary"
-                    onPress={() => {
-                        router.push("/(tabs)/map");
-                    }}
-                />
+                <View style={styles.ctaList}>
 
-
-            </View>
-
-            <View style={styles.searchArea}>
-                <SearchFavoriteToggle value={activeView} onChange={setActiveView} />
-
-                <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
-            </View>
-
-            <Text style={styles.sectionTitle}>Schnell filtern</Text>
-
-            <View style={styles.chipRow}>
-                <FilterChip
-                    label="Alle"
-                    selected={selectedCategory === "all"}
-                    onPress={() => setSelectedCategory("all")}
-                />
-
-                <FilterChip
-                    label="Hendl"
-                    selected={selectedCategory === "hendl"}
-                    onPress={() => setSelectedCategory("hendl")}
-                />
-
-                <FilterChip
-                    label="Steckerlfisch"
-                    selected={selectedCategory === "steckerlfisch"}
-                    onPress={() => setSelectedCategory("steckerlfisch")}
-                />
-
-                <FilterChip
-                    label="Jetzt geöffnet"
-                    selected={showOpenOnly}
-                    onPress={toggleOpenOnly}
-                />
-            </View>
-
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                    {activeView === "favorites" ? "Deine Favoriten" : "Standl in deiner Nähe"}
-                </Text>
-
-                <Text style={styles.resultCount}>
-                    {filteredStandl.length} gefunden
-                </Text>
-            </View>
-
-            {isStandlLoading ? (
-                <Text style={styles.infoText}>Standl werden geladen...</Text>
-            ) : null}
-
-            {standlErrorMessage ? (
-                <Text style={styles.errorText}>{standlErrorMessage}</Text>
-            ) : null}
-
-            {filteredStandl.length > 0 ? (
-                <View style={styles.cardList}>
-                    {filteredStandl.map((standl) => (
-                        <StandlCard
-                            key={standl.id}
-                            standl={standl}
-                            isFavorite={favoriteStandlIds.includes(standl.id)}
+                    {userProfile?.role === "owner" ? (
+                        <RadarStartCTA
+                            title="Zu meinen Standl"
+                            description="Verwalte Zeiten, Preise und Infos zu deinen Standl."
+                            icon="storefront-outline"
                             onPress={() => {
-                                router.push(`/standl/${standl.id}`);
+                                router.push("/owner");
                             }}
                         />
-                    ))}
+                    ) : null}
+
+                    <RadarStartCTA
+                        title="Standl vorschlagen"
+                        description="Füge ein Hendl- oder Steckerlfisch-Standl zur Karte hinzu."
+                        icon="add-circle-outline"
+                        onPress={() => {
+                            router.push({
+                                pathname: "/standl/new",
+                                params: { mode: "community" },
+                            });
+                        }}
+                    />
+
+                    <RadarStartCTA
+                        title="Standl in der Nähe finden"
+                        description="Zeig dir Hendl und Steckerlfisch rund um dich."
+                        icon="navigate-outline"
+                        variant="primary"
+                        onPress={() => {
+                            router.push("/(tabs)/map");
+                        }}
+                    />
+
+
                 </View>
-            ) : (
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyTitle}>
-                        {activeView === "favorites"
-                            ? "Keine Favoriten gefunden"
-                            : "Keine Standl gefunden"}
+
+                <View style={styles.searchArea}>
+                    <SearchFavoriteToggle value={activeView} onChange={setActiveView} />
+
+                    <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
+                </View>
+
+                <Text style={styles.sectionTitle}>Schnell filtern</Text>
+
+                <StandlFilterChips
+                    selectedCategory={selectedCategory}
+                    onChangeCategory={setSelectedCategory}
+                    showOpenOnly={showOpenOnly}
+                    onToggleOpenOnly={toggleOpenOnly}
+                />
+
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>
+                        {activeView === "favorites" ? "Deine Favoriten" : "Standl in deiner Nähe"}
                     </Text>
 
-                    <Text style={styles.emptyText}>
-                        {activeView === "favorites"
-                            ? "Speichere Standl als Favorit, damit du sie hier schnell wiederfindest."
-                            : "Versuche eine andere Suche oder ändere deine Filter."}
+                    <Text style={styles.resultCount}>
+                        {sortedStandl.length} gefunden
                     </Text>
                 </View>
-            )}
-        </ScrollView>
+
+                {isStandlLoading ? (
+                    <Text style={styles.infoText}>Standl werden geladen...</Text>
+                ) : null}
+
+                {standlErrorMessage ? (
+                    <Text style={styles.errorText}>{standlErrorMessage}</Text>
+                ) : null}
+
+                {sortedStandl.length > 0 ? (
+                    <View style={styles.cardList}>
+                        {sortedStandl.map((standl) => (
+                            <StandlCard
+                                key={standl.id}
+                                standl={standl}
+                                isFavorite={favoriteStandlIds.includes(standl.id)}
+                                onPress={() => {
+                                    router.push(`/standl/${standl.id}`);
+                                }}
+                            />
+                        ))}
+                    </View>
+                ) : (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyTitle}>
+                            {activeView === "favorites"
+                                ? "Keine Favoriten gefunden"
+                                : "Keine Standl gefunden"}
+                        </Text>
+
+                        <Text style={styles.emptyText}>
+                            {activeView === "favorites"
+                                ? "Speichere Standl als Favorit, damit du sie hier schnell wiederfindest."
+                                : "Versuche eine andere Suche oder ändere deine Filter."}
+                        </Text>
+                    </View>
+                )}
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
@@ -206,9 +222,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Theme.background,
     },
+    scrollView: {
+        flex: 1,
+    },
     content: {
-        padding: 24,
-        paddingTop: 64,
+        paddingHorizontal: 16,
+        padding: 12,
+        paddingTop: 24,
     },
     ctaList: {
         gap: 12,
@@ -223,12 +243,6 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: "700",
         marginBottom: 12,
-    },
-    chipRow: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 10,
-        marginBottom: 28,
     },
     sectionHeader: {
         marginBottom: 12,

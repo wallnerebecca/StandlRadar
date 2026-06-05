@@ -27,7 +27,6 @@ export type Standl = {
     likes: number;
     isClaimed: boolean;
     ownerId?: string;
-    distanceKm?: number;
     createdBy?: string;
     source?: "owner" | "community";
 };

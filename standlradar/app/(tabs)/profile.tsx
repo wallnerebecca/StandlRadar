@@ -6,7 +6,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { Theme } from "@/constants/colors";
-import { firebaseApp } from "@/lib/firebase";
+import { useUserLocation } from "@/contexts/UserLocationContext";
 
 import { getUserProfile } from "@/lib/userProfile";
 import type { UserProfile } from "@/types/user";
@@ -17,6 +17,11 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function ProfileScreen() {
 
     const { user, isLoading, logout } = useAuth();
+    const {
+        permissionStatus,
+        userLocation,
+        isLoadingLocation,
+    } = useUserLocation();
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [isProfileLoading, setIsProfileLoading] = useState(false);
 
@@ -48,7 +53,7 @@ export default function ProfileScreen() {
         <View style={styles.container}>
             <AppHeader
                 title="Profil"
-                subtitle="Willkommen beim StandlRadar!"
+                subtitle={`Servus ${userProfile?.username ?? 'unbekannt'}!`}
             />
 
             {isLoading ? (
@@ -65,6 +70,19 @@ export default function ProfileScreen() {
 
                     <Text style={styles.cardText}>
                         Rolle: {userProfile?.role === "owner" ? "Standl-Besitzer*in" : "Nutzer*in"}
+                    </Text>
+
+
+                    <Text style={styles.cardText}>
+                        Standortstatus: {permissionStatus}
+                    </Text>
+
+                    <Text style={styles.cardText}>
+                        {isLoadingLocation
+                            ? "Standort wird geladen..."
+                            : userLocation
+                                ? `Position verfügbar: ${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`
+                                : "Keine Position verfügbar"}
                     </Text>
 
                     <PrimaryButton label="Ausloggen" onPress={logout} />

@@ -1,18 +1,30 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MapView from "react-native-maps";
+import MapView, { type Region } from "react-native-maps";
 
 import { FilterChip } from "@/components/buttons/FilterChip";
 import { StandlCard } from "@/components/StandlCard";
 import { StandlMapMarker } from "@/components/StandlMapMarker";
+import { StandlFilterChips } from "@/components/filters/StandlFilterContainer";
+
+
 import { Theme } from "@/constants/colors";
 import { useStandl } from "@/hooks/useStandl";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { useStandlFilters } from "@/contexts/StandlFilterContext";
+import { useUserLocation } from "@/contexts/UserLocationContext";
+
 import { filterStandl } from "@/lib/filterStandl";
 
+
+const AUSTRIA_REGION: Region = {
+    latitude: 47.5162,
+    longitude: 14.5501,
+    latitudeDelta: 5.2,
+    longitudeDelta: 5.2,
+};
 
 export default function MapScreen() {
     const {
@@ -26,6 +38,7 @@ export default function MapScreen() {
     const { favoriteStandlIds } = useFavorites();
     const { standl } = useStandl();
 
+
     const filteredStandl = useMemo(() => {
         return filterStandl({
             standl,
@@ -33,6 +46,15 @@ export default function MapScreen() {
             showOpenOnly,
         });
     }, [selectedCategory, showOpenOnly, standl]);
+
+
+
+    const mapRef = useRef<MapView | null>(null);
+
+    const {
+        userLocation,
+        isLoadingLocation,
+    } = useUserLocation();
 
     const selectedStandl = useMemo(() => {
         if (!selectedStandlId) {
@@ -42,49 +64,44 @@ export default function MapScreen() {
         return filteredStandl.find((item) => item.id === selectedStandlId) ?? null;
     }, [selectedStandlId, filteredStandl]);
 
+
+    useEffect(() => {
+        if (isLoadingLocation || !userLocation) {
+            return;
+        }
+
+        mapRef.current?.animateToRegion(
+            {
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+                latitudeDelta: 0.08,
+                longitudeDelta: 0.08,
+            },
+            700
+        );
+    }, [isLoadingLocation, userLocation]);
+
+
     return (
-
-
-
         <SafeAreaView style={styles.screen} edges={["top"]}>
             <View style={styles.filterContainer}>
                 <Text style={styles.screenTitle}>Karte</Text>
 
-                <View style={styles.filterBar}>
-                    <FilterChip
-                        label="Alle"
-                        selected={selectedCategory === "all"}
-                        onPress={() => setSelectedCategory("all")}
-                    />
-
-                    <FilterChip
-                        label="Hendl"
-                        selected={selectedCategory === "hendl"}
-                        onPress={() => setSelectedCategory("hendl")}
-                    />
-
-                    <FilterChip
-                        label="Steckerlfisch"
-                        selected={selectedCategory === "steckerlfisch"}
-                        onPress={() => setSelectedCategory("steckerlfisch")}
-                    />
-
-                    <FilterChip
-                        label="Jetzt geöffnet"
-                        selected={showOpenOnly}
-                        onPress={toggleOpenOnly}
-                    />
-                </View>
+                <StandlFilterChips
+                    selectedCategory={selectedCategory}
+                    onChangeCategory={setSelectedCategory}
+                    showOpenOnly={showOpenOnly}
+                    onToggleOpenOnly={toggleOpenOnly}
+                />
             </View>
             <View style={styles.mapContainer}>
                 <MapView
+                    ref={mapRef}
                     style={styles.map}
-                    initialRegion={{
-                        latitude: 48.3069,
-                        longitude: 14.2858,
-                        latitudeDelta: 0.45,
-                        longitudeDelta: 0.45,
-                    }}
+                    initialRegion={AUSTRIA_REGION}
+                    showsUserLocation={Boolean(userLocation)}
+                    showsMyLocationButton={Boolean(userLocation)}
+                    toolbarEnabled={false}
                 >
                     {filteredStandl.map((standl) => (
                         <StandlMapMarker

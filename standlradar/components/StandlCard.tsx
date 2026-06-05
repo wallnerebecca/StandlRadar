@@ -1,8 +1,15 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { useUserLocation } from "@/contexts/UserLocationContext";
+import { calculateDistanceKm } from "@/lib/calculateDistance";
+import { formatDistance } from "@/lib/formatDistance";
+import { openNavigation } from "@/lib/openNavigation";
+import { formatStreetAddress } from "@/lib/formatStandlAddress";
+
 import { Theme } from "@/constants/colors";
 import type { Standl } from "@/types/standl";
+import { NavigationIconButton } from "./buttons/NavigationIconButton";
 
 type StandlCardProps = {
     standl: Standl;
@@ -17,9 +24,20 @@ export function StandlCard({ standl, isFavorite = false, onPress }: StandlCardPr
     const likeLabel =
         standl.category === "hendl" ? "Hendl-Likes" : "Fisch-Likes";
 
-    const streetValue = [standl.street, standl.streetNumber]
-        .filter(Boolean)
-        .join(" ");
+    const streetValue = formatStreetAddress(standl);
+
+    const { userLocation } = useUserLocation();
+
+    const distanceKm = userLocation
+        ? calculateDistanceKm(
+            userLocation,
+            {
+                latitude: standl.latitude,
+                longitude: standl.longitude,
+            }
+        )
+        : undefined;
+
 
     return (
         <Pressable
@@ -72,14 +90,30 @@ export function StandlCard({ standl, isFavorite = false, onPress }: StandlCardPr
                 ) : null}
 
                 <View style={styles.footer}>
-                    <Text style={styles.likes}>
-                        {standl.likes} {likeLabel}
-                    </Text>
+                    <View>
+                        <Text style={styles.likes}>
+                            {standl.likes} {likeLabel}
+                        </Text>
 
-                    {standl.distanceKm ? (
-                        <Text style={styles.distance}>{standl.distanceKm} km</Text>
-                    ) : null}
+                        {distanceKm !== undefined ? (
+                            <Text style={styles.distance}>
+                                {formatDistance(distanceKm)}
+                            </Text>
+                        ) : null}
+                    </View>
+                    <NavigationIconButton
+                        icon="navigate-outline"
+                        accessibilityLabel={`Route zu ${standl.name} öffnen`}
+                        onPress={() =>
+                            openNavigation({
+                                latitude: standl.latitude,
+                                longitude: standl.longitude,
+                            })
+                        }
+                    />
                 </View>
+
+
             </View>
         </Pressable>
     );
@@ -161,6 +195,7 @@ const styles = StyleSheet.create({
     },
     footer: {
         flexDirection: "row",
+        alignItems: "center",
         justifyContent: "space-between",
         gap: 12,
     },
@@ -173,5 +208,12 @@ const styles = StyleSheet.create({
         color: Theme.textSecondary,
         fontSize: 13,
         fontWeight: "600",
+    },
+    footerInfo: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
     },
 });

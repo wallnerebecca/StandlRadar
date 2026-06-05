@@ -151,16 +151,19 @@ export async function toggleStandlLike(standlId: string, userId: string) {
     });
 }
 
-type CreateStandlInput = {
+type StandlEditableFields = {
     name: string;
     category: Standl["category"];
     locationName: string;
-    street?: string;
-    streetNumber?: string;
+    street: string;
+    streetNumber: string;
     postalCode: string;
     city: string;
     latitude: number;
     longitude: number;
+};
+
+type CreateStandlInput = StandlEditableFields & {
     createdBy: string;
     mode: "owner" | "community";
 };
@@ -198,22 +201,12 @@ export async function createStandlInFirestore(input: CreateStandlInput) {
     return createdDoc.id;
 }
 
-type UpdateStandlInput = {
-    name: string;
-    category: Standl["category"];
-    locationName: string;
-    street: string;
-    streetNumber: string;
-    postalCode: string;
-    city: string;
-    latitude: number;
-    longitude: number;
-};
+
 
 export async function updateOwnerStandlInFirestore(
     standlId: string,
     ownerId: string,
-    input: UpdateStandlInput
+    input: StandlEditableFields
 ) {
     const standlRef = doc(firestoreDb, "standl", standlId);
     const standlSnapshot = await getDoc(standlRef);

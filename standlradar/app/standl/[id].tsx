@@ -9,17 +9,26 @@ import { ImageFavoriteButton } from "@/components/buttons/ImageFavoriteButton";
 import { OpeningStatusBadge } from "@/components/OpeningStatusBadge";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
+import { CategoryLikeButton } from "@/components/buttons/CategoryLikeButton";
+
 import { Theme } from "@/constants/colors";
 
-import { CategoryLikeButton } from "@/components/buttons/CategoryLikeButton";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserLocation } from "@/contexts/UserLocationContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
+
 import {
     getSingleStandlFromFirestore,
     hasUserLikedStandl,
     toggleStandlLike,
 } from "@/lib/standlService";
+import { calculateDistanceKm } from "@/lib/calculateDistance";
+import { openNavigation } from "@/lib/openNavigation";
+import { formatDistance } from "@/lib/formatDistance";
+import { RadarStartCTA } from "@/components/buttons/RadarStartCTA";
+import { formatFullAddress } from "@/lib/formatStandlAddress";
+
 import type { Standl } from "@/types/standl";
-import { useAuth } from "@/contexts/AuthContext";
 
 export default function StandlDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string; }>();
@@ -101,6 +110,7 @@ export default function StandlDetailScreen() {
 function StandlDetailContent({ standl }: { standl: Standl; }) {
     const { isFavorite, toggleFavorite } = useFavorites();
     const { user } = useAuth();
+    const { userLocation } = useUserLocation();
 
     const favoriteActive = isFavorite(standl.id);
 
@@ -178,16 +188,17 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
 
     const categoryIcon = standl.category === "hendl" ? "🍗" : "🐟";
 
-    const addressValue = [
-        [standl.street, standl.streetNumber]
-            .filter(Boolean)
-            .join(" "),
-        [standl.postalCode, standl.city]
-            .filter(Boolean)
-            .join(" "),
-    ]
-        .filter(Boolean)
-        .join(", ");
+    const addressValue = formatFullAddress(standl);
+
+    const distanceKm = userLocation
+        ? calculateDistanceKm(
+            userLocation,
+            {
+                latitude: standl.latitude,
+                longitude: standl.longitude,
+            }
+        )
+        : undefined;
 
 
     return (
@@ -257,15 +268,18 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
                     value={addressValue || "Keine Adresse verfügbar"}
                 />
 
-                <InfoRow
-                    icon="navigate-outline"
-                    label="Entfernung"
-                    value={
-                        standl.distanceKm
-                            ? `${standl.distanceKm} km entfernt`
-                            : "Keine Entfernung verfügbar"
-                    }
-                />
+                {distanceKm !== undefined ? (
+                    <InfoRow
+                        icon="navigate-outline"
+                        label="Route in Google Maps öffnen"
+                        value={`${formatDistance(distanceKm)} entfernt`}
+                        onPress={() => openNavigation({
+                            latitude: standl.latitude,
+                            longitude: standl.longitude,
+                        })}
+                    />
+                ) : null}
+
             </View>
 
 
