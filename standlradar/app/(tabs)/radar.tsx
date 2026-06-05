@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { AppHeader } from "@/components/AppHeader";
-import { FilterChip } from "@/components/FilterChip";
-import { RadarStartCTA } from "@/components/RadarStartCTA";
+import { FilterChip } from "@/components/buttons/FilterChip";
+import { RadarStartCTA } from "@/components/buttons/RadarStartCTA";
 import { SearchBar } from "@/components/SearchBar";
 import { SearchFavoriteToggle } from "@/components/SearchFavoriteToggle";
 import { StandlCard } from "@/components/StandlCard";

@@ -17,6 +17,10 @@ export function StandlCard({ standl, isFavorite = false, onPress }: StandlCardPr
     const likeLabel =
         standl.category === "hendl" ? "Hendl-Likes" : "Fisch-Likes";
 
+    const streetValue = [standl.street, standl.streetNumber]
+        .filter(Boolean)
+        .join(" ");
+
     return (
         <Pressable
             onPress={onPress}
@@ -46,20 +50,26 @@ export function StandlCard({ standl, isFavorite = false, onPress }: StandlCardPr
                     {categoryLabel} · {standl.city}
                 </Text>
 
-                <Text style={styles.location}>{standl.locationName}</Text>
+                {streetValue ? (
+                    <Text style={styles.location}>
+                        {streetValue}
+                    </Text>
+                ) : null}
 
-                <Text
-                    style={[
-                        styles.status,
-                        ["likelyOpen", "opensLater"].includes(standl.openingStatus.type) &&
-                        styles.warning,
-                        ["closed", "temporaryClosed"].includes(standl.openingStatus.type) &&
-                        styles.error,
-                        standl.openingStatus.type === "unknown" && styles.neutral,
-                    ]}
-                >
-                    {standl.openingStatus.label}
-                </Text>
+
+                {standl.openingStatus.type !== "unknown" ? (
+                    <Text
+                        style={[
+                            styles.status,
+                            ["likelyOpen", "opensLater"].includes(standl.openingStatus.type) &&
+                            styles.warning,
+                            ["closed", "temporaryClosed"].includes(standl.openingStatus.type) &&
+                            styles.error,
+                        ]}
+                    >
+                        {standl.openingStatus.label}
+                    </Text>
+                ) : null}
 
                 <View style={styles.footer}>
                     <Text style={styles.likes}>

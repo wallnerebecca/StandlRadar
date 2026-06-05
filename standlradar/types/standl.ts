@@ -13,6 +13,8 @@ export type Standl = {
     name: string;
     category: StandlCategory;
     locationName: string;
+    street?: string;
+    streetNumber?: string;
     postalCode: string;
     city: string;
     latitude: number;

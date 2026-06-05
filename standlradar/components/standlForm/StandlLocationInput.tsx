@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker, MapPressEvent, Region } from "react-native-maps";
 
-import { SecondaryButton } from "@/components/SecondaryButton";
+import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { Theme } from "@/constants/colors";
 import type {
     LocationInputMode,

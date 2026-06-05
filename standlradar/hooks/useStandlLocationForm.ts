@@ -90,7 +90,7 @@ export function useStandlLocationForm(
             }
 
             if (firstResult.streetNumber) {
-                setStreetNumber(firstResult.streetNumber);
+                setStreetNumber(firstResult.streetNumber ?? "");
             }
 
 
@@ -175,6 +175,7 @@ export function useStandlLocationForm(
         setCity,
 
         selectedLocation,
+        setSelectedLocation,
         mapRegion,
         setMapRegion,
 

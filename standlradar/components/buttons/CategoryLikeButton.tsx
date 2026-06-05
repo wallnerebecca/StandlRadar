@@ -19,8 +19,8 @@ export function CategoryLikeButton({
     disabled
 }: CategoryLikeButtonProps) {
     const icon = category === "hendl"
-        ? require("../assets/images/Icon_Hendl.png")
-        : require("../assets/images/Icon_Fisch.png");
+        ? require("../../assets/images/Icon_Hendl.png")
+        : require("../../assets/images/Icon_Fisch.png");
 
     return (
         <Pressable

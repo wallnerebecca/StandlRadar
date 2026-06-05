@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView from "react-native-maps";
 
-import { FilterChip } from "@/components/FilterChip";
+import { FilterChip } from "@/components/buttons/FilterChip";
 import { StandlCard } from "@/components/StandlCard";
 import { StandlMapMarker } from "@/components/StandlMapMarker";
 import { Theme } from "@/constants/colors";

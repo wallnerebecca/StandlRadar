@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { router } from "expo-router";
 
 import { AppHeader } from "@/components/AppHeader";
-import { PrimaryButton } from "@/components/PrimaryButton";
-import { SecondaryButton } from "@/components/SecondaryButton";
+import { PrimaryButton } from "@/components/buttons/PrimaryButton";
+import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { Theme } from "@/constants/colors";
 import { firebaseApp } from "@/lib/firebase";
 

@@ -1,5 +1,6 @@
 import {
     addDoc,
+    updateDoc,
     collection,
     doc,
     getDoc,
@@ -25,13 +26,15 @@ type FirestoreStandl = {
     name?: string;
     category?: Standl["category"];
     locationName?: string;
+    street?: string;
+    streetNumber?: string;
     postalCode?: string;
     city?: string;
     location?: GeoPoint;
     openingStatus?: FirestoreOpeningStatus;
     likes?: number;
     isClaimed?: boolean;
-    ownerId?: string;
+    ownerId?: string | null;
     createdBy?: string;
     source?: "owner" | "community";
 };
@@ -46,6 +49,8 @@ export function mapFirestoreStandl(documentId: string, data: FirestoreStandl): S
         name: data.name ?? "Unbenanntes Standl",
         category: data.category ?? "hendl",
         locationName: data.locationName ?? "Unbekannter Standort",
+        street: data.street ?? "",
+        streetNumber: data.streetNumber ?? "",
         postalCode: data.postalCode ?? "",
         city: data.city ?? "",
         latitude: data.location.latitude,
@@ -150,6 +155,8 @@ type CreateStandlInput = {
     name: string;
     category: Standl["category"];
     locationName: string;
+    street?: string;
+    streetNumber?: string;
     postalCode: string;
     city: string;
     latitude: number;
@@ -167,6 +174,8 @@ export async function createStandlInFirestore(input: CreateStandlInput) {
         name: input.name,
         category: input.category,
         locationName: input.locationName,
+        street: input.street ?? "",
+        streetNumber: input.streetNumber ?? "",
         postalCode: input.postalCode,
         city: input.city,
         location: new GeoPoint(input.latitude, input.longitude),
@@ -187,4 +196,52 @@ export async function createStandlInFirestore(input: CreateStandlInput) {
     const createdDoc = await addDoc(standlRef, newStandl);
 
     return createdDoc.id;
+}
+
+type UpdateStandlInput = {
+    name: string;
+    category: Standl["category"];
+    locationName: string;
+    street: string;
+    streetNumber: string;
+    postalCode: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+};
+
+export async function updateOwnerStandlInFirestore(
+    standlId: string,
+    ownerId: string,
+    input: UpdateStandlInput
+) {
+    const standlRef = doc(firestoreDb, "standl", standlId);
+    const standlSnapshot = await getDoc(standlRef);
+
+    if (!standlSnapshot.exists()) {
+        throw new Error("Standl existiert nicht.");
+    }
+
+    const currentStandl = standlSnapshot.data();
+
+    if (currentStandl.ownerId !== ownerId) {
+        throw new Error(
+            "Dieses Standl gehört nicht zum eingeloggten Besitzerkonto."
+        );
+    }
+
+    await updateDoc(standlRef, {
+        name: input.name,
+        category: input.category,
+        locationName: input.locationName,
+        street: input.street,
+        streetNumber: input.streetNumber,
+        postalCode: input.postalCode,
+        city: input.city,
+        location: new GeoPoint(
+            input.latitude,
+            input.longitude
+        ),
+        updatedAt: serverTimestamp(),
+    });
 }

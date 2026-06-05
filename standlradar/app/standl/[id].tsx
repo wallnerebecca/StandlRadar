@@ -1,23 +1,24 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { ScreenContainer } from "@/components/layout/ScreenContainer";
 import { InfoRow } from "@/components/InfoRow";
-import { ImageFavoriteButton } from "@/components/ImageFavoriteButton";
+import { ImageFavoriteButton } from "@/components/buttons/ImageFavoriteButton";
 import { OpeningStatusBadge } from "@/components/OpeningStatusBadge";
-import { PrimaryButton } from "@/components/PrimaryButton";
-import { SecondaryButton } from "@/components/SecondaryButton";
+import { PrimaryButton } from "@/components/buttons/PrimaryButton";
+import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { Theme } from "@/constants/colors";
 
-import { CategoryLikeButton } from "@/components/CategoryLikeButton";
+import { CategoryLikeButton } from "@/components/buttons/CategoryLikeButton";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import {
     getSingleStandlFromFirestore,
     hasUserLikedStandl,
     toggleStandlLike,
 } from "@/lib/standlService";
-import { Standl } from "@/types/standl";
+import type { Standl } from "@/types/standl";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function StandlDetailScreen() {
@@ -36,15 +37,12 @@ export default function StandlDetailScreen() {
                 return;
             }
 
+            setIsLoading(true);
+
             try {
                 setErrorMessage("");
 
                 const firestoreStandl = await getSingleStandlFromFirestore(id);
-
-                if (!firestoreStandl) {
-                    setStandl(null);
-                    return;
-                }
 
                 setStandl(firestoreStandl);
             } catch (error) {
@@ -60,15 +58,15 @@ export default function StandlDetailScreen() {
 
     if (isLoading) {
         return (
-            <View style={styles.notFoundContainer}>
+            <ScreenContainer style={styles.notFoundContainer}>
                 <Text style={styles.notFoundTitle}>Standl wird geladen...</Text>
-            </View>
+            </ScreenContainer>
         );
     }
 
     if (errorMessage) {
         return (
-            <View style={styles.notFoundContainer}>
+            <ScreenContainer style={styles.notFoundContainer}>
                 <Text style={styles.notFoundTitle}>Fehler</Text>
                 <Text style={styles.notFoundText}>{errorMessage}</Text>
 
@@ -76,24 +74,24 @@ export default function StandlDetailScreen() {
                     label="Zurück zum Radar"
                     onPress={() => router.replace("/(tabs)/radar")}
                 />
-            </View>
+            </ScreenContainer>
         );
     }
 
 
     if (!standl) {
         return (
-            <View style={styles.notFoundContainer}>
+            <ScreenContainer style={styles.notFoundContainer}>
                 <Text style={styles.notFoundTitle}>Standl nicht gefunden</Text>
                 <Text style={styles.notFoundText}>
-                    Dieses Standl gibt es in den Mock-Daten nicht.
+                    Dieses Standl wurde nicht in der Datenbank gefunden.
                 </Text>
 
                 <PrimaryButton
                     label="Zurück zum Radar"
                     onPress={() => router.replace("/(tabs)/radar")}
                 />
-            </View>
+            </ScreenContainer>
         );
     }
 
@@ -102,6 +100,8 @@ export default function StandlDetailScreen() {
 
 function StandlDetailContent({ standl }: { standl: Standl; }) {
     const { isFavorite, toggleFavorite } = useFavorites();
+    const { user } = useAuth();
+
     const favoriteActive = isFavorite(standl.id);
 
     const [liked, setLiked] = useState(false);
@@ -129,7 +129,25 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
         loadLikeStatus();
     }, [standl.id, standl.likes, user]);
 
-    const { user } = useAuth();
+    const canEditStandl = user?.uid === standl.ownerId;
+
+    const editButton = canEditStandl ? (
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Standl bearbeiten"
+            onPress={() => router.push(`/standl/edit/${standl.id}`)}
+            style={({ pressed }) => [
+                styles.editButton,
+                pressed && styles.editButtonPressed,
+            ]}
+        >
+            <Ionicons
+                name="pencil"
+                size={24}
+                color={Theme.textPrimary}
+            />
+        </Pressable>
+    ) : null;
 
     async function handleLikePress() {
         if (!user) {
@@ -160,9 +178,23 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
 
     const categoryIcon = standl.category === "hendl" ? "🍗" : "🐟";
 
+    const addressValue = [
+        [standl.street, standl.streetNumber]
+            .filter(Boolean)
+            .join(" "),
+        [standl.postalCode, standl.city]
+            .filter(Boolean)
+            .join(" "),
+    ]
+        .filter(Boolean)
+        .join(", ");
+
 
     return (
-        <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <ScreenContainer
+            contentStyle={styles.content}
+            floatingContent={editButton}
+        >
             <View style={styles.topBar}>
                 <SecondaryButton label="Zurück" onPress={() => router.back()} />
             </View>
@@ -221,8 +253,8 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
             <View style={styles.infoList}>
                 <InfoRow
                     icon="location-outline"
-                    label="Standort"
-                    value={`${standl.locationName}, ${standl.postalCode} ${standl.city}`}
+                    label="Adresse"
+                    value={addressValue || "Keine Adresse verfügbar"}
                 />
 
                 <InfoRow
@@ -288,19 +320,14 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
                     onPress={() => console.log("Problem melden:", standl.id)}
                 />
             </View>
-        </ScrollView>
+        </ScreenContainer>
     );
 }
 
 const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: Theme.background,
-    },
     content: {
-        padding: 24,
-        paddingTop: 56,
-        paddingBottom: 40,
+        paddingTop: 20,
+        paddingBottom: 120,
     },
     topBar: {
         alignSelf: "flex-start",
@@ -395,9 +422,7 @@ const styles = StyleSheet.create({
         lineHeight: 21,
     },
     notFoundContainer: {
-        flex: 1,
-        backgroundColor: Theme.background,
-        padding: 24,
+        flexGrow: 1,
         justifyContent: "center",
         gap: 16,
     },
@@ -426,5 +451,25 @@ const styles = StyleSheet.create({
         right: 8,
         bottom: 30,
         zIndex: 10,
+    },
+    editButton: {
+        position: "absolute",
+        right: 20,
+        bottom: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: Theme.secondary,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 30,
+        elevation: 8,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 3,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 5,
     },
 });
