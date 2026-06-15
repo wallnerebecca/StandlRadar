@@ -10,6 +10,12 @@ export const routes = {
     newStandlLocation: (standlId: string) =>
         `/standl/${standlId}/location/new` as const,
 
+    newStandlSchedule: (
+        standlId: string,
+        locationId: string
+    ) =>
+        `/standl/${standlId}/location/${locationId}/schedule/new` as const,
+
     standlDetail: (standlId: string) =>
         `/standl/${standlId}` as const,
 

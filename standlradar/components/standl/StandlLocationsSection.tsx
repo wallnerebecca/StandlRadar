@@ -16,7 +16,7 @@ type StandlLocationsSectionProps = {
 export function StandlLocationsSection({
     locations,
     canEdit,
-    standlId
+    standlId,
 }: StandlLocationsSectionProps) {
     const { userLocation } = useUserLocation();
 
@@ -73,10 +73,6 @@ export function StandlLocationsSection({
 
     return (
         <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-                Standorte ({locations.length})
-            </Text>
-
             <View style={styles.locationList}>
                 {locations.map((location, index) => (
                     <StandlLocationCard
@@ -93,6 +89,8 @@ export function StandlLocationsSection({
                                     : location.id
                             )
                         }
+                        canEdit={canEdit}
+                        standlId={standlId}
                     />
                 ))}
             </View>

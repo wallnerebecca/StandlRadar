@@ -50,8 +50,6 @@ export default function MapScreen() {
         });
     }, [selectedCategory, showOpenOnly, standl]);
 
-
-
     const mapRef = useRef<MapView | null>(null);
 
     const {

@@ -7,11 +7,13 @@ import { formatDistance } from "@/lib/formatDistance";
 import { openNavigation } from "@/lib/openNavigation";
 import { formatStreetAddress } from "@/lib/formatStandlAddress";
 import { getStandlDisplayLocation } from "@/lib/getStandlDisplayLocation";
+import { getLocationOpeningStatus } from "@/lib/getLocationOpeningStatus";
+import { useCurrentTime } from "@/hooks/useCurrentTime";
 
 import { Theme } from "@/constants/colors";
 import type { Standl } from "@/types/standl";
 import type { StandlLocation } from "@/types/standlLocation";
-import { NavigationIconButton } from "../buttons/NavigationIconButton";
+import { NavigationIconButton } from "@/components/buttons/NavigationIconButton";
 
 type StandlCardProps = {
     standl: Standl;
@@ -36,8 +38,15 @@ export function StandlCard({ standl, location, isFavorite = false, onPress }: St
             userLocation
         );
 
+    const currentTime = useCurrentTime();
+
+    const openingStatus = displayLocation
+        ? getLocationOpeningStatus(displayLocation, currentTime)
+        : null;
+
     const streetValue = displayLocation
-        ? formatStreetAddress(standl) : "";
+        ? formatStreetAddress(displayLocation)
+        : "";
 
     const distanceKm = userLocation && displayLocation
         ? calculateDistanceKm(userLocation, displayLocation)
@@ -80,18 +89,17 @@ export function StandlCard({ standl, location, isFavorite = false, onPress }: St
                     </Text>
                 ) : null}
 
-
-                {standl.openingStatus.type !== "unknown" ? (
+                {openingStatus && openingStatus.type !== "unknown" ? (
                     <Text
                         style={[
                             styles.status,
-                            ["likelyOpen", "opensLater"].includes(standl.openingStatus.type) &&
+                            openingStatus.type === "opensLater" &&
                             styles.warning,
-                            ["closed", "temporaryClosed"].includes(standl.openingStatus.type) &&
+                            openingStatus.type === "closed" &&
                             styles.error,
                         ]}
                     >
-                        {standl.openingStatus.label}
+                        {openingStatus.label}
                     </Text>
                 ) : null}
 
@@ -110,6 +118,7 @@ export function StandlCard({ standl, location, isFavorite = false, onPress }: St
                     {displayLocation ? (
                         <NavigationIconButton
                             icon="navigate-outline"
+                            isOpen={openingStatus?.type === "open"}
                             accessibilityLabel={`Route zu ${standl.name} öffnen`}
                             onPress={() =>
                                 openNavigation({
@@ -198,9 +207,6 @@ const styles = StyleSheet.create({
     error: {
         color: Theme.error,
     },
-    neutral: {
-        color: Theme.textSecondary,
-    },
     footer: {
         flexDirection: "row",
         alignItems: "center",
@@ -216,12 +222,5 @@ const styles = StyleSheet.create({
         color: Theme.textSecondary,
         fontSize: 13,
         fontWeight: "600",
-    },
-    footerInfo: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
     },
 });

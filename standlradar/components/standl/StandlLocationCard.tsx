@@ -8,12 +8,20 @@ import { calculateDistanceKm } from "@/lib/calculateDistance";
 import { formatFullAddress } from "@/lib/formatStandlAddress";
 import { formatDistance } from "@/lib/formatDistance";
 import { openNavigation } from "@/lib/openNavigation";
+import { formatWeekday } from "@/lib/formatWeekday";
+import { getLocationOpeningStatus } from "@/lib/getLocationOpeningStatus";
 import type { StandlLocation } from "@/types/standlLocation";
+
+import { router } from "expo-router";
+import { SecondaryButton } from "@/components/buttons/SecondaryButton";
+import { routes } from "@/lib/routes";
 
 type StandlLocationCardProps = {
     location: StandlLocation;
     index: number;
     isExpanded: boolean;
+    canEdit?: boolean;
+    standlId: string;
     onToggle: () => void;
 };
 
@@ -21,6 +29,8 @@ export function StandlLocationCard({
     location,
     index,
     isExpanded,
+    canEdit = false,
+    standlId,
     onToggle
 }: StandlLocationCardProps) {
     const { userLocation } = useUserLocation();
@@ -33,6 +43,21 @@ export function StandlLocationCard({
             longitude: location.longitude,
         })
         : undefined;
+
+    const sortedSchedules = [...(location.schedules ?? [])].sort(
+        (firstSchedule, secondSchedule) => {
+            if (firstSchedule.weekday !== secondSchedule.weekday) {
+                return firstSchedule.weekday - secondSchedule.weekday;
+            }
+
+            return firstSchedule.startTime.localeCompare(
+                secondSchedule.startTime
+            );
+        }
+    );
+
+    const hasSchedules = (location.schedules ?? []).length > 0;
+    const openingStatus = getLocationOpeningStatus(location);
 
     return (
         <View style={styles.card}>
@@ -72,6 +97,19 @@ export function StandlLocationCard({
             </Pressable>
             {isExpanded ? (
                 <View style={styles.details}>
+                    <View style={styles.statusRow}>
+                        <Text
+                            style={[
+                                styles.statusText,
+                                openingStatus.type === "open" && styles.statusOpen,
+                                openingStatus.type === "opensLater" && styles.statusWarning,
+                                openingStatus.type === "closed" && styles.statusClosed,
+                                openingStatus.type === "unknown" && styles.statusUnknown,
+                            ]}
+                        >
+                            {openingStatus.label}
+                        </Text>
+                    </View>
                     <InfoRow
                         icon="location-outline"
                         label="Adresse"
@@ -91,6 +129,52 @@ export function StandlLocationCard({
                             }
                         />
                     ) : null}
+
+                    <View style={styles.scheduleSection}>
+                        <Text style={styles.scheduleTitle}>Standzeiten</Text>
+
+                        {sortedSchedules.length > 0 ? (
+                            <View style={styles.scheduleList}>
+                                {sortedSchedules.map((schedule) => (
+                                    <View
+                                        key={schedule.id}
+                                        style={styles.scheduleRow}
+                                    >
+                                        <Text style={styles.scheduleDay}>
+                                            {formatWeekday(schedule.weekday)}
+                                        </Text>
+
+                                        <Text style={styles.scheduleTime}>
+                                            {schedule.startTime}–{schedule.endTime}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        ) : (
+                            <Text style={styles.emptyScheduleText}>
+                                Für diesen Standort sind noch keine Standzeiten eingetragen.
+                            </Text>
+                        )}
+                    </View>
+
+                    {canEdit ? (
+                        <SecondaryButton
+                            label={
+                                hasSchedules
+                                    ? "Standzeiten ändern"
+                                    : "Standzeit hinzufügen"
+                            }
+                            onPress={() =>
+                                router.push(
+                                    routes.newStandlSchedule(
+                                        standlId,
+                                        location.id
+                                    )
+                                )
+                            }
+                        />
+                    ) : null}
+
                 </View>
 
             ) : null}
@@ -126,11 +210,6 @@ const styles = StyleSheet.create({
     headerText: {
         flex: 1,
     },
-    title: {
-        color: Theme.textPrimary,
-        fontSize: 17,
-        fontWeight: "800",
-    },
     city: {
         color: Theme.textSecondary,
         fontSize: 13,
@@ -142,4 +221,59 @@ const styles = StyleSheet.create({
         padding: 12,
         gap: 10,
     },
-});;;;;
+    scheduleSection: {
+        gap: 10,
+    },
+    scheduleTitle: {
+        color: Theme.textPrimary,
+        fontSize: 15,
+        fontWeight: "800",
+    },
+    scheduleList: {
+        gap: 8,
+    },
+    scheduleRow: {
+        backgroundColor: Theme.surface,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 12,
+    },
+    scheduleDay: {
+        color: Theme.textPrimary,
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    scheduleTime: {
+        color: Theme.textSecondary,
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    emptyScheduleText: {
+        color: Theme.textSecondary,
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    statusRow: {
+        marginBottom: 2,
+    },
+    statusText: {
+        fontSize: 14,
+        fontWeight: "800",
+    },
+    statusOpen: {
+        color: Theme.success,
+    },
+    statusWarning: {
+        color: Theme.warning,
+    },
+    statusClosed: {
+        color: Theme.error,
+    },
+    statusUnknown: {
+        color: Theme.textSecondary,
+    },
+});

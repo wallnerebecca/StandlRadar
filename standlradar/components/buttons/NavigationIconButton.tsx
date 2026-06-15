@@ -7,12 +7,14 @@ type NavigationIconButtonProps = {
     onPress: () => void;
     icon?: keyof typeof Ionicons.glyphMap;
     accessibilityLabel?: string;
+    isOpen?: boolean;
 };
 
 export function NavigationIconButton({
     onPress,
     icon = "navigate-outline",
     accessibilityLabel = "Route öffnen",
+    isOpen = false,
 }: NavigationIconButtonProps) {
     return (
         <Pressable
@@ -22,6 +24,7 @@ export function NavigationIconButton({
             onPress={onPress}
             style={({ pressed }) => [
                 styles.button,
+                isOpen && styles.buttonOpen,
                 pressed && styles.buttonPressed,
             ]}
         >
@@ -46,5 +49,8 @@ const styles = StyleSheet.create({
     buttonPressed: {
         opacity: 0.8,
         transform: [{ scale: 0.96 }],
+    },
+    buttonOpen: {
+        backgroundColor: Theme.success,
     },
 });

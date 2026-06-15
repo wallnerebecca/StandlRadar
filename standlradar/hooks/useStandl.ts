@@ -15,21 +15,22 @@ export function useStandl() {
     useEffect(() => {
         const standlRef = collection(firestoreDb, "standl");
 
-        const unsubscribe = onSnapshot(standlRef, (snapshot) => {
-            try {
-                const firestoreStandl: Standl[] = snapshot.docs.map((standlDoc) => {
-                    return mapFirestoreStandl(standlDoc.id, standlDoc.data());
-                });
+        const unsubscribe = onSnapshot(
+            standlRef,
+            async () => {
+                try {
+                    const firestoreStandl =
+                        await getStandlFromFirestore();
 
-                setErrorMessage("");
-                setStandl(firestoreStandl);
-            } catch (error) {
-                console.warn("Standl konnten nicht geladen werden:", error);
-                setErrorMessage("Standl konnten nicht geladen werden.");
-            } finally {
-                setIsLoading(false);
-            }
-        },
+                    setErrorMessage("");
+                    setStandl(firestoreStandl);
+                } catch (error) {
+                    console.warn("Standl konnten nicht geladen werden:", error);
+                    setErrorMessage("Standl konnten nicht geladen werden.");
+                } finally {
+                    setIsLoading(false);
+                }
+            },
             (error) => {
                 console.warn("Standl konnten nicht geladen werden:", error);
                 setErrorMessage("Standl konnten nicht geladen werden.");

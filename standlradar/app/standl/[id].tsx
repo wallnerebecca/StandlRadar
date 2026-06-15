@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ScreenState } from "@/components/layout/ScreenState";
 import { ScreenContainer } from "@/components/layout/ScreenContainer";
 import { ImageFavoriteButton } from "@/components/buttons/ImageFavoriteButton";
-import { OpeningStatusBadge } from "@/components/standl/OpeningStatusBadge";
+
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { CategoryLikeButton } from "@/components/buttons/CategoryLikeButton";
@@ -238,50 +238,11 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
                 </Text>
             </View>
 
-            <OpeningStatusBadge
-                type={standl.openingStatus.type}
-                label={standl.openingStatus.label}
-                source={standl.openingStatus.source}
-            />
-
-
             <StandlLocationsSection
                 locations={standl.locations ?? []}
+                canEdit={canEditStandl}
+                standlId={standl.id}
             />
-
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Standzeiten</Text>
-
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>
-                        {standl.openingStatus.source === "owner"
-                            ? "Besitzer-bestätigte Zeit"
-                            : standl.openingStatus.source === "community"
-                                ? "Community-Zeit"
-                                : "Keine Standzeit bekannt"}
-                    </Text>
-
-                    <Text style={styles.cardText}>
-                        {standl.openingStatus.source === "owner"
-                            ? "Diese Zeit wurde vom Standl bestätigt."
-                            : standl.openingStatus.source === "community"
-                                ? "Diese Zeit wurde von der Community vorgeschlagen und ist noch nicht bestätigt."
-                                : "Für dieses Standl wurde noch keine Standzeit eingetragen."}
-                    </Text>
-                </View>
-            </View>
-
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Preisliste</Text>
-
-                <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Noch keine Preise eingetragen</Text>
-                    <Text style={styles.cardText}>
-                        Besitzer*innen können später Produktname, Preis und Beschreibung
-                        ergänzen.
-                    </Text>
-                </View>
-            </View>
 
             <View style={styles.actionGrid}>
                 <PrimaryButton
@@ -369,35 +330,9 @@ const styles = StyleSheet.create({
         gap: 10,
         marginBottom: 28,
     },
-    section: {
-        marginBottom: 22,
-    },
     sectionHeader: {
         gap: 10,
         marginBottom: 12,
-    },
-    sectionTitle: {
-        color: Theme.textPrimary,
-        fontSize: 20,
-        fontWeight: "800",
-    },
-    card: {
-        backgroundColor: Theme.card,
-        borderColor: Theme.border,
-        borderWidth: 1,
-        borderRadius: 18,
-        padding: 16,
-    },
-    cardTitle: {
-        color: Theme.textPrimary,
-        fontSize: 16,
-        fontWeight: "800",
-        marginBottom: 6,
-    },
-    cardText: {
-        color: Theme.textSecondary,
-        fontSize: 14,
-        lineHeight: 21,
     },
     imageWrapper: {
         position: "relative",
