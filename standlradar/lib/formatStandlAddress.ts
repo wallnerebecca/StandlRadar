@@ -1,15 +1,20 @@
-import type { Standl } from "@/types/standl";
+type AddressFields = {
+    street?: string;
+    streetNumber?: string;
+    postalCode: string;
+    city: string;
+};
 
-export function formatStreetAddress(standl: Standl) {
-    return [standl.street, standl.streetNumber]
+export function formatStreetAddress(address: AddressFields) {
+    return [address.street, address.streetNumber]
         .filter(Boolean)
         .join(" ");
 }
 
-export function formatFullAddress(standl: Standl) {
-    const streetAddress = formatStreetAddress(standl);
+export function formatFullAddress(address: AddressFields) {
+    const streetAddress = formatStreetAddress(address);
 
-    const cityAddress = [standl.postalCode, standl.city]
+    const cityAddress = [address.postalCode, address.city]
         .filter(Boolean)
         .join(" ");
 

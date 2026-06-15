@@ -7,6 +7,9 @@ export const routes = {
     newOwnerStandl: "/standl/new?mode=owner",
     newCommunityStandl: "/standl/new?mode=community",
 
+    newStandlLocation: (standlId: string) =>
+        `/standl/${standlId}/location/new` as const,
+
     standlDetail: (standlId: string) =>
         `/standl/${standlId}` as const,
 

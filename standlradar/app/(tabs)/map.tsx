@@ -33,7 +33,10 @@ export default function MapScreen() {
         showOpenOnly,
         toggleOpenOnly,
     } = useStandlFilters();
-    const [selectedStandlId, setSelectedStandlId] = useState<string | null>(null);
+    const [selectedMarker, setSelectedMarker] = useState<{
+        standlId: string;
+        locationId: string;
+    } | null>(null);
 
     const { favoriteStandlIds } = useFavorites();
     const { standl } = useStandl();
@@ -57,12 +60,26 @@ export default function MapScreen() {
     } = useUserLocation();
 
     const selectedStandl = useMemo(() => {
-        if (!selectedStandlId) {
+        if (!selectedMarker) {
             return null;
         }
 
-        return filteredStandl.find((item) => item.id === selectedStandlId) ?? null;
-    }, [selectedStandlId, filteredStandl]);
+        return filteredStandl.find(
+            (item) => item.id === selectedMarker.standlId) ?? null;
+    }, [selectedMarker, filteredStandl]);
+
+    const selectedLocation = useMemo(() => {
+        if (!selectedStandl || !selectedMarker) {
+            return null;
+        }
+
+        return (
+            selectedStandl.locations?.find(
+                (location) =>
+                    location.id === selectedMarker.locationId
+            ) ?? null
+        );
+    }, [selectedStandl, selectedMarker]);
 
 
     useEffect(() => {
@@ -103,13 +120,21 @@ export default function MapScreen() {
                     showsMyLocationButton={Boolean(userLocation)}
                     toolbarEnabled={false}
                 >
-                    {filteredStandl.map((standl) => (
-                        <StandlMapMarker
-                            key={standl.id}
-                            standl={standl}
-                            onPress={() => setSelectedStandlId(standl.id)}
-                        />
-                    ))}
+                    {filteredStandl.flatMap((standl) =>
+                        (standl.locations ?? []).map((location) => (
+                            <StandlMapMarker
+                                key={`${standl.id}-${location.id}`}
+                                standl={standl}
+                                location={location}
+                                onPress={() =>
+                                    setSelectedMarker({
+                                        standlId: standl.id,
+                                        locationId: location.id,
+                                    })
+                                }
+                            />
+                        ))
+                    )}
                 </MapView>
 
                 {filteredStandl.length === 0 ? (
@@ -121,18 +146,19 @@ export default function MapScreen() {
                     </View>
                 ) : null}
 
-                {selectedStandl ? (
+                {selectedStandl && selectedLocation ? (
                     <View style={styles.preview}>
                         <View style={styles.previewHeader}>
                             <Text style={styles.previewTitle}>Ausgewähltes Standl</Text>
 
-                            <Pressable onPress={() => setSelectedStandlId(null)}>
+                            <Pressable onPress={() => setSelectedMarker(null)}>
                                 <Text style={styles.closeText}>Schließen</Text>
                             </Pressable>
                         </View>
 
                         <StandlCard
                             standl={selectedStandl}
+                            location={selectedLocation ?? undefined}
                             isFavorite={favoriteStandlIds.includes(selectedStandl.id)}
                             onPress={() => {
                                 router.push(routes.standlDetail(selectedStandl.id));

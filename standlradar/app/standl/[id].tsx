@@ -5,17 +5,16 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ScreenState } from "@/components/layout/ScreenState";
 import { ScreenContainer } from "@/components/layout/ScreenContainer";
-import { InfoRow } from "@/components/standl/InfoRow";
 import { ImageFavoriteButton } from "@/components/buttons/ImageFavoriteButton";
 import { OpeningStatusBadge } from "@/components/standl/OpeningStatusBadge";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { CategoryLikeButton } from "@/components/buttons/CategoryLikeButton";
+import { StandlLocationsSection } from "@/components/standl/StandlLocationsSection";
 
 import { Theme } from "@/constants/colors";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { useUserLocation } from "@/contexts/UserLocationContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 
 
@@ -24,12 +23,7 @@ import {
     hasUserLikedStandl,
     toggleStandlLike,
 } from "@/lib/standlService";
-import { calculateDistanceKm } from "@/lib/calculateDistance";
-import { openNavigation } from "@/lib/openNavigation";
-import { formatDistance } from "@/lib/formatDistance";
 import { routes } from "@/lib/routes";
-
-import { formatFullAddress } from "@/lib/formatStandlAddress";
 
 import type { Standl } from "@/types/standl";
 
@@ -41,36 +35,50 @@ export default function StandlDetailScreen() {
     const [errorMessage, setErrorMessage] = useState("");
 
 
-    useEffect(() => {
-        async function loadStandl() {
-            if (!id) {
-                setErrorMessage("Keine Standl-ID gefunden.");
-                setIsLoading(false);
-                return;
+    useFocusEffect(
+        useCallback(() => {
+            async function loadStandl() {
+                if (!id) {
+                    setErrorMessage("Keine Standl-ID gefunden.");
+                    setIsLoading(false);
+                    return;
+                }
+
+                setIsLoading(true);
+
+                try {
+                    setErrorMessage("");
+
+                    const firestoreStandl = await getSingleStandlFromFirestore(id);
+
+                    setStandl(firestoreStandl);
+                } catch (error) {
+                    console.warn("Standl konnte nicht geladen werden:", error);
+                    setErrorMessage("Standl konnte nicht geladen werden.");
+                } finally {
+                    setIsLoading(false);
+                }
             }
 
-            setIsLoading(true);
+            loadStandl();
+        }, [id])
+    );
 
-            try {
-                setErrorMessage("");
-
-                const firestoreStandl = await getSingleStandlFromFirestore(id);
-
-                setStandl(firestoreStandl);
-            } catch (error) {
-                console.warn("Standl konnte nicht geladen werden:", error);
-                setErrorMessage("Standl konnte nicht geladen werden.");
-            } finally {
-                setIsLoading(false);
-            }
-        }
-
-        loadStandl();
-    }, [id]);
 
     if (isLoading) {
         return (
             <ScreenState message="Standl wird geladen..." />
+        );
+    }
+
+    if (errorMessage) {
+        return (
+            <ScreenState
+                title="Fehler"
+                message={errorMessage}
+                primaryActionLabel="Zurück zum Radar"
+                onPrimaryAction={() => router.replace(routes.radar)}
+            />
         );
     }
 
@@ -87,13 +95,14 @@ export default function StandlDetailScreen() {
         );
     }
 
+
     return <StandlDetailContent standl={standl} />;
 }
 
 function StandlDetailContent({ standl }: { standl: Standl; }) {
     const { isFavorite, toggleFavorite } = useFavorites();
     const { user } = useAuth();
-    const { userLocation } = useUserLocation();
+
 
     const favoriteActive = isFavorite(standl.id);
 
@@ -171,19 +180,6 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
 
     const categoryIcon = standl.category === "hendl" ? "🍗" : "🐟";
 
-    const addressValue = formatFullAddress(standl);
-
-    const distanceKm = userLocation
-        ? calculateDistanceKm(
-            userLocation,
-            {
-                latitude: standl.latitude,
-                longitude: standl.longitude,
-            }
-        )
-        : undefined;
-
-
     return (
         <ScreenContainer
             contentStyle={styles.content}
@@ -234,7 +230,11 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
                 </View>
 
                 <Text style={styles.subtitle}>
-                    {categoryLabel} · {standl.city}
+                    {categoryLabel}
+                    {standl.locations?.length
+                        ? ` · ${standl.locations.length} ${standl.locations.length === 1 ? "Standort" : "Standorte"
+                        }`
+                        : ""}
                 </Text>
             </View>
 
@@ -244,27 +244,10 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
                 source={standl.openingStatus.source}
             />
 
-            <View style={styles.infoList}>
-                <InfoRow
-                    icon="location-outline"
-                    label="Adresse"
-                    value={addressValue || "Keine Adresse verfügbar"}
-                />
 
-                {distanceKm !== undefined ? (
-                    <InfoRow
-                        icon="navigate-outline"
-                        label="Route in Google Maps öffnen"
-                        value={`${formatDistance(distanceKm)} entfernt`}
-                        onPress={() => openNavigation({
-                            latitude: standl.latitude,
-                            longitude: standl.longitude,
-                        })}
-                    />
-                ) : null}
-
-            </View>
-
+            <StandlLocationsSection
+                locations={standl.locations ?? []}
+            />
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Standzeiten</Text>
@@ -382,11 +365,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: "800",
     },
-    infoList: {
-        gap: 10,
-        marginTop: 18,
-        marginBottom: 22,
-    },
     actionGrid: {
         gap: 10,
         marginBottom: 28,
@@ -394,11 +372,14 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: 22,
     },
+    sectionHeader: {
+        gap: 10,
+        marginBottom: 12,
+    },
     sectionTitle: {
         color: Theme.textPrimary,
         fontSize: 20,
         fontWeight: "800",
-        marginBottom: 12,
     },
     card: {
         backgroundColor: Theme.card,
@@ -457,5 +438,12 @@ const styles = StyleSheet.create({
     editButtonPressed: {
         opacity: 0.8,
         transform: [{ scale: 0.96 }],
+    },
+    locationsSection: {
+        marginTop: 18,
+        marginBottom: 22,
+    },
+    locationList: {
+        gap: 18,
     },
 });
