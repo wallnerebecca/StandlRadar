@@ -14,6 +14,8 @@ import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { Theme } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
+
+import { routes } from "@/lib/routes";
 import type { UserRole } from "@/types/user";
 
 export default function RegisterScreen() {
@@ -49,7 +51,7 @@ export default function RegisterScreen() {
 
         try {
             await registerWithEmail(email.trim(), password, username, role);
-            router.replace("/(tabs)/profile");
+            router.replace(routes.profile);
         } catch (error) {
             console.warn(error);
             setErrorMessage("Registrierung fehlgeschlagen. Prüfe deine Eingaben.");
@@ -160,7 +162,7 @@ export default function RegisterScreen() {
 
                     <SecondaryButton
                         label="Zum Login"
-                        onPress={() => router.push("/auth/login")}
+                        onPress={() => router.push(routes.login)}
                     />
 
                     <Pressable onPress={() => router.back()}>

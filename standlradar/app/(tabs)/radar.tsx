@@ -10,6 +10,7 @@ import { SearchBar } from "@/components/search/SearchBar";
 import { SearchFavoriteToggle } from "@/components/search/SearchFavoriteToggle";
 import { StandlCard } from "@/components/standl/StandlCard";
 import { StandlFilterChips } from "@/components/filters/StandlFilterContainer";
+import { OwnerStandlCTA } from "@/components/standl/OwnerStandlCTA";
 
 import { Theme } from "@/constants/colors";
 
@@ -18,6 +19,7 @@ import { useStandlFilters } from "@/contexts/StandlFilterContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/UserLocationContext";
 
+import { routes } from "@/lib/routes";
 import { filterStandl } from "@/lib/filterStandl";
 import { calculateDistanceKm } from "@/lib/calculateDistance";
 import { getUserProfile } from "@/lib/userProfileService";
@@ -115,17 +117,7 @@ export default function RadarScreen() {
 
                 <View style={styles.ctaList}>
 
-                    {userProfile?.role === "owner" ? (
-                        <RadarStartCTA
-                            title="Zu meinen Standl"
-                            description="Verwalte Zeiten, Preise und Infos zu deinen Standl."
-                            icon="storefront-outline"
-                            onPress={() => {
-                                router.push("/owner");
-                            }}
-                        />
-                    ) : null}
-
+                    <OwnerStandlCTA role={userProfile?.role} />
                     <RadarStartCTA
                         title="Standl vorschlagen"
                         description="Füge ein Hendl- oder Steckerlfisch-Standl zur Karte hinzu."
@@ -192,7 +184,7 @@ export default function RadarScreen() {
                                 standl={standl}
                                 isFavorite={favoriteStandlIds.includes(standl.id)}
                                 onPress={() => {
-                                    router.push(`/standl/${standl.id}`);
+                                    router.push(routes.standlDetail(standl.id));
                                 }}
                             />
                         ))}

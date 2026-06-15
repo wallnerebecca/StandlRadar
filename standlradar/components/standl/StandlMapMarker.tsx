@@ -10,8 +10,8 @@ type StandlMapMarkerProps = {
 export function StandlMapMarker({ standl, onPress }: StandlMapMarkerProps) {
     const markerImage =
         standl.category === "hendl"
-            ? require("../assets/images/map-pins/Pin_Hendl.png")
-            : require("../assets/images/map-pins/Pin_Fisch.png");
+            ? require("../../assets/images/map-pins/Pin_Hendl.png")
+            : require("../../assets/images/map-pins/Pin_Fisch.png");
 
     return (
         <Marker

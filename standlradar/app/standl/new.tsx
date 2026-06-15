@@ -1,19 +1,22 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
 import { StyleSheet, Text, View, } from "react-native";
 
 import { FormScreen } from "@/components/layout/FormScreen";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
-import { StandlBasicInfoForm } from "@/components/standlForm/StandlBasicInfoForm";
-import { StandlLocationInput } from "@/components/standlForm/StandlLocationInput";
+import { StandlFormFields } from "@/components/standlForm/StandlFormFields";
+import { AppHeader } from "@/components/AppHeader";
+
 import { Theme } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
-import { useStandlLocationForm } from "@/hooks/useStandlLocationForm";
+
+import { useStandlForm } from "@/hooks/useStandlForm";
+
 import { createStandlInFirestore } from "@/lib/standlService";
-import type { StandlCategory } from "@/types/standl";
+import { routes } from "@/lib/routes";
+
 import type { AddMode } from "@/types/standlForm";
-import { validateStandlForm } from "@/lib/validateStandlForm";
+
 
 export default function NewStandlScreen() {
     const { user } = useAuth();
@@ -21,12 +24,19 @@ export default function NewStandlScreen() {
 
     const addMode: AddMode = mode === "owner" ? "owner" : "community";
 
-    const [name, setName] = useState("");
-    const [category, setCategory] = useState<StandlCategory>("hendl");
-    const [errorMessage, setErrorMessage] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const locationForm = useStandlLocationForm(setErrorMessage);
+    const {
+        name,
+        setName,
+        category,
+        setCategory,
+        errorMessage,
+        setErrorMessage,
+        isSubmitting,
+        setIsSubmitting,
+        locationForm,
+        validate,
+        getEditableFields,
+    } = useStandlForm();
 
     const title =
         addMode === "owner" ? "Eigenes Standl hinzufügen" : "Standl vorschlagen";
@@ -39,28 +49,18 @@ export default function NewStandlScreen() {
     async function handleCreateStandl() {
         setErrorMessage("");
 
-        if (!user || !locationForm.selectedLocation) {
+        if (!user) {
+            router.push(routes.login);
             return;
         }
 
-        const validationError = validateStandlForm({
-            name,
-            category,
-            locationInputMode: locationForm.locationInputMode,
-            locationName: locationForm.locationName,
-            street: locationForm.street,
-            streetNumber: locationForm.streetNumber,
-            postalCode: locationForm.postalCode,
-            city: locationForm.city,
-            selectedLocation: locationForm.selectedLocation,
-        });
-
-        if (validationError) {
-            setErrorMessage(validationError);
+        if (!validate()) {
             return;
         }
 
-        if (!locationForm.selectedLocation) {
+        const editableFields = getEditableFields();
+
+        if (!editableFields) {
             return;
         }
 
@@ -68,20 +68,12 @@ export default function NewStandlScreen() {
 
         try {
             const createdStandlId = await createStandlInFirestore({
-                name: name.trim(),
-                category,
-                locationName: locationForm.locationName.trim(),
-                street: locationForm.street.trim(),
-                streetNumber: locationForm.streetNumber.trim(),
-                postalCode: locationForm.postalCode.trim(),
-                city: locationForm.city.trim(),
-                latitude: locationForm.selectedLocation.latitude,
-                longitude: locationForm.selectedLocation.longitude,
+                ...editableFields,
                 createdBy: user.uid,
                 mode: addMode,
             });
 
-            router.replace(`/standl/${createdStandlId}`);
+            router.replace(routes.standlDetail(createdStandlId));
         } catch (error) {
             console.warn("Standl konnte nicht erstellt werden:", error);
             setErrorMessage("Standl konnte nicht erstellt werden.");
@@ -95,43 +87,20 @@ export default function NewStandlScreen() {
             scrollRef={locationForm.scrollViewRef}
             contentStyle={styles.content}
         >
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.subtitle}>{subtitle}</Text>
+            <AppHeader
+                title={title}
+                subtitle={subtitle}
+            />
 
             <View style={styles.form}>
-                <StandlBasicInfoForm
+                <StandlFormFields
                     name={name}
                     onChangeName={setName}
                     category={category}
                     onChangeCategory={setCategory}
+                    locationForm={locationForm}
+                    errorMessage={errorMessage}
                 />
-
-                <StandlLocationInput
-                    locationInputMode={locationForm.locationInputMode}
-                    onChangeLocationInputMode={
-                        locationForm.handleLocationInputModeChange
-                    }
-                    locationName={locationForm.locationName}
-                    onChangeLocationName={locationForm.setLocationName}
-                    street={locationForm.street}
-                    onChangeStreet={locationForm.setStreet}
-                    streetNumber={locationForm.streetNumber}
-                    onChangeStreetNumber={locationForm.setStreetNumber}
-                    postalCode={locationForm.postalCode}
-                    onChangePostalCode={locationForm.setPostalCode}
-                    city={locationForm.city}
-                    onChangeCity={locationForm.setCity}
-                    selectedLocation={locationForm.selectedLocation}
-                    mapRegion={locationForm.mapRegion}
-                    onChangeMapRegion={locationForm.setMapRegion}
-                    onMapPress={locationForm.handleMapPress}
-                    isSearchingAddress={locationForm.isSearchingAddress}
-                    onSearchAddress={locationForm.handleSearchAddress}
-                />
-
-                {errorMessage ? (
-                    <Text style={styles.errorText}>{errorMessage}</Text>
-                ) : null}
 
                 <PrimaryButton
                     label={
@@ -151,24 +120,7 @@ const styles = StyleSheet.create({
     content: {
         paddingBottom: 80,
     },
-    title: {
-        color: Theme.textPrimary,
-        fontSize: 30,
-        fontWeight: "800",
-        marginBottom: 8,
-    },
-    subtitle: {
-        color: Theme.textSecondary,
-        fontSize: 15,
-        lineHeight: 22,
-        marginBottom: 24,
-    },
     form: {
         gap: 12,
-    },
-    errorText: {
-        color: Theme.error,
-        fontSize: 14,
-        lineHeight: 20,
     },
 });

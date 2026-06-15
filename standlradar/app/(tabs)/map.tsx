@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { type Region } from "react-native-maps";
 
-import { FilterChip } from "@/components/buttons/FilterChip";
+
 import { StandlCard } from "@/components/standl/StandlCard";
 import { StandlMapMarker } from "@/components/standl/StandlMapMarker";
 import { StandlFilterChips } from "@/components/filters/StandlFilterContainer";
@@ -17,7 +17,7 @@ import { useStandlFilters } from "@/contexts/StandlFilterContext";
 import { useUserLocation } from "@/contexts/UserLocationContext";
 
 import { filterStandl } from "@/lib/filterStandl";
-
+import { routes } from "@/lib/routes";
 
 const AUSTRIA_REGION: Region = {
     latitude: 47.5162,
@@ -135,7 +135,7 @@ export default function MapScreen() {
                             standl={selectedStandl}
                             isFavorite={favoriteStandlIds.includes(selectedStandl.id)}
                             onPress={() => {
-                                router.push(`/standl/${selectedStandl.id}`);
+                                router.push(routes.standlDetail(selectedStandl.id));
                             }}
                         />
                     </View>

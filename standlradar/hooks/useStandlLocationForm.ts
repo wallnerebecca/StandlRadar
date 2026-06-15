@@ -96,21 +96,10 @@ export function useStandlLocationForm(
 
             const firstResult = results[0];
 
-            if (firstResult.city) {
-                setCity(firstResult.city);
-            }
-
-            if (firstResult.postalCode) {
-                setPostalCode(firstResult.postalCode);
-            }
-
-            if (firstResult.street) {
-                setStreet(firstResult.street);
-            }
-
-            if (firstResult.streetNumber) {
-                setStreetNumber(firstResult.streetNumber ?? "");
-            }
+            setCity(firstResult.city ?? "");
+            setPostalCode(firstResult.postalCode ?? "");
+            setStreet(firstResult.street ?? "");
+            setStreetNumber(firstResult.streetNumber ?? "");
 
 
         } catch (error) {
@@ -200,3 +189,6 @@ export function useStandlLocationForm(
         handleMapPress,
     };
 }
+
+export type StandlLocationFormState =
+    ReturnType<typeof useStandlLocationForm>;

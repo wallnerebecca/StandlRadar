@@ -15,6 +15,8 @@ import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { Theme } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
 
+import { routes } from "@/lib/routes";
+
 export default function LoginScreen() {
     const { loginWithEmail } = useAuth();
 
@@ -29,7 +31,7 @@ export default function LoginScreen() {
 
         try {
             await loginWithEmail(email.trim(), password);
-            router.replace("/(tabs)/profile");
+            router.replace(routes.profile);
         } catch (error) {
             console.warn(error);
             setErrorMessage("Login fehlgeschlagen. Prüfe E-Mail und Passwort.");

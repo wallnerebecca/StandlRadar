@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserLocation } from "@/contexts/UserLocationContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 
+
 import {
     getSingleStandlFromFirestore,
     hasUserLikedStandl,
@@ -26,7 +27,8 @@ import {
 import { calculateDistanceKm } from "@/lib/calculateDistance";
 import { openNavigation } from "@/lib/openNavigation";
 import { formatDistance } from "@/lib/formatDistance";
-import { RadarStartCTA } from "@/components/buttons/RadarStartCTA";
+import { routes } from "@/lib/routes";
+
 import { formatFullAddress } from "@/lib/formatStandlAddress";
 
 import type { Standl } from "@/types/standl";
@@ -79,7 +81,7 @@ export default function StandlDetailScreen() {
                 message="Dieses Standl wurde nicht in der Datenbank gefunden."
                 primaryActionLabel="Zurück zum Radar"
                 onPrimaryAction={() =>
-                    router.replace("/(tabs)/radar")
+                    router.replace(routes.radar)
                 }
             />
         );
@@ -126,7 +128,7 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
         <Pressable
             accessibilityRole="button"
             accessibilityLabel="Standl bearbeiten"
-            onPress={() => router.push(`/standl/edit/${standl.id}`)}
+            onPress={() => router.push(routes.standlEdit(standl.id))}
             style={({ pressed }) => [
                 styles.editButton,
                 pressed && styles.editButtonPressed,
@@ -142,7 +144,7 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
 
     async function handleLikePress() {
         if (!user) {
-            router.push("/auth/login");
+            router.push(routes.login);
             return;
         }
 

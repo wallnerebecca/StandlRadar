@@ -5,14 +5,20 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
+import { StandlCard } from "@/components/standl/StandlCard";
+
+
 import { Theme } from "@/constants/colors";
+
 import { useAuth } from "@/contexts/AuthContext";
+import { useFavorites } from "@/contexts/FavoritesContext";
+
 import { getUserProfile } from "@/lib/userProfileService";
+import { getOwnerStandlFromFirestore } from "@/lib/standlService";
+import { routes } from "@/lib/routes";
+
 import type { UserProfile } from "@/types/user";
 import { Standl } from "@/types/standl";
-import { useFavorites } from "@/contexts/FavoritesContext";
-import { getOwnerStandlFromFirestore } from "@/lib/standlService";
-import { StandlCard } from "@/components/standl/StandlCard";
 
 export default function OwnerScreen() {
     const { user, isLoading } = useAuth();
@@ -88,7 +94,7 @@ export default function OwnerScreen() {
 
                 <PrimaryButton
                     label="Einloggen"
-                    onPress={() => router.push("/auth/login")}
+                    onPress={() => router.push(routes.login)}
                 />
 
                 <SecondaryButton label="Zurück" onPress={() => router.back()} />
@@ -128,7 +134,7 @@ export default function OwnerScreen() {
                                 standl={standl}
                                 isFavorite={favoriteStandlIds.includes(standl.id)}
                                 onPress={() => {
-                                    router.push(`/standl/${standl.id}`);
+                                    router.push(routes.standlDetail(standl.id));
                                 }}
                             />
                         ))}
