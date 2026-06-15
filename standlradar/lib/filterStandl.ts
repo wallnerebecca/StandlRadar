@@ -1,4 +1,5 @@
 import type { Standl, StandlCategory } from "@/types/standl";
+import { getLocationOpeningStatus } from "@/lib/getLocationOpeningStatus";
 
 export type CategoryFilter = "all" | StandlCategory;
 
@@ -9,6 +10,7 @@ type FilterStandlParams = {
     showOpenOnly?: boolean;
     favoriteStandlIds?: string[];
     showFavoritesOnly?: boolean;
+    currentDate?: Date;
 };
 
 export function filterStandl({
@@ -18,6 +20,7 @@ export function filterStandl({
     showOpenOnly = false,
     favoriteStandlIds = [],
     showFavoritesOnly = false,
+    currentDate = new Date(),
 }: FilterStandlParams) {
     let result = standl;
 
@@ -31,7 +34,10 @@ export function filterStandl({
 
     if (showOpenOnly) {
         result = result.filter((item) =>
-            ["open", "likelyOpen"].includes(item.openingStatus.type)
+            (item.locations ?? []).some(
+                (location) =>
+                    getLocationOpeningStatus(location, currentDate).type === "open"
+            )
         );
     }
 
@@ -39,12 +45,18 @@ export function filterStandl({
 
     if (normalizedQuery.length > 0) {
         result = result.filter((item) => {
-            return (
-                item.name.toLowerCase().includes(normalizedQuery) ||
-                item.city.toLowerCase().includes(normalizedQuery) ||
-                item.locationName.toLowerCase().includes(normalizedQuery) ||
-                item.postalCode.includes(normalizedQuery)
+            const matchesStandlName = item.name
+                .toLowerCase()
+                .includes(normalizedQuery);
+
+            const matchesLocation = (item.locations ?? []).some((location) =>
+                location.locationName.toLowerCase().includes(normalizedQuery) ||
+                location.city.toLowerCase().includes(normalizedQuery) ||
+                location.street.toLowerCase().includes(normalizedQuery) ||
+                location.postalCode.includes(normalizedQuery)
             );
+
+            return matchesStandlName || matchesLocation;
         });
     }
 

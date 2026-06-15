@@ -6,6 +6,7 @@ import {
     serverTimestamp,
 } from "firebase/firestore";
 
+import { getStandlLocationSchedules } from "@/lib/standlScheduleService";
 import { firestoreDb } from "@/lib/firebase";
 import type { StandlLocation } from "@/types/standlLocation";
 
@@ -70,28 +71,37 @@ export async function getStandlLocations(
 
     const snapshot = await getDocs(locationsRef);
 
-    return snapshot.docs.map((locationDoc) => {
-        const data = locationDoc.data();
+    const locations = await Promise.all(
+        snapshot.docs.map(async (locationDoc) => {
+            const data = locationDoc.data();
 
-        if (!data.location) {
-            throw new Error(
-                `Standort ${locationDoc.id} hat keinen GeoPoint.`
+            if (!data.location) {
+                throw new Error(
+                    `Standort ${locationDoc.id} hat keinen GeoPoint.`
+                );
+            }
+
+            const schedules = await getStandlLocationSchedules(
+                standlId,
+                locationDoc.id
             );
-        }
 
-        return {
-            id: locationDoc.id,
-            standlId,
-            locationName: data.locationName ?? "",
-            street: data.street ?? "",
-            streetNumber: data.streetNumber ?? "",
-            postalCode: data.postalCode ?? "",
-            city: data.city ?? "",
-            latitude: data.location.latitude,
-            longitude: data.location.longitude,
-            source: data.source ?? "community",
-            status: data.status ?? "pending",
-            createdBy: data.createdBy ?? "",
-        };
-    });
+            return {
+                id: locationDoc.id,
+                standlId,
+                locationName: data.locationName ?? "",
+                street: data.street ?? "",
+                streetNumber: data.streetNumber ?? "",
+                postalCode: data.postalCode ?? "",
+                city: data.city ?? "",
+                latitude: data.location.latitude,
+                longitude: data.location.longitude,
+                source: data.source ?? "community",
+                status: data.status ?? "pending",
+                createdBy: data.createdBy ?? "",
+                schedules,
+            };
+        })
+    );
+    return locations;
 }

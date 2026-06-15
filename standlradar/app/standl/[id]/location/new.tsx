@@ -50,6 +50,7 @@ export default function NewStandlLocationScreen() {
 
                 const standl = await getSingleStandlFromFirestore(id);
 
+
                 if (!standl) {
                     setErrorMessage("Standl wurde nicht gefunden.");
                     return;
