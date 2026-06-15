@@ -1,5 +1,5 @@
 import {
-    addDoc,
+    writeBatch,
     updateDoc,
     collection,
     doc,
@@ -14,6 +14,7 @@ import {
 
 import { firestoreDb } from "@/lib/firebase";
 import type { Standl } from "@/types/standl";
+import { getStandlLocations } from "@/lib/standlLocationService";
 
 type FirestoreOpeningStatus = {
     type: Standl["openingStatus"]["type"];
@@ -70,9 +71,23 @@ export async function getStandlFromFirestore() {
     const standlRef = collection(firestoreDb, "standl");
     const snapshot = await getDocs(standlRef);
 
-    return snapshot.docs.map((standlDoc) =>
-        mapFirestoreStandl(standlDoc.id, standlDoc.data() as FirestoreStandl)
+    const standlWithLocations = await Promise.all(
+        snapshot.docs.map(async (standlDoc) => {
+            const standl = mapFirestoreStandl(
+                standlDoc.id,
+                standlDoc.data() as FirestoreStandl
+            );
+
+            const locations = await getStandlLocations(standlDoc.id);
+
+            return {
+                ...standl,
+                locations,
+            };
+        })
     );
+
+    return standlWithLocations;
 }
 
 export async function getSingleStandlFromFirestore(standlId: string) {
@@ -83,7 +98,17 @@ export async function getSingleStandlFromFirestore(standlId: string) {
         return null;
     }
 
-    return mapFirestoreStandl(snapshot.id, snapshot.data() as FirestoreStandl);
+    const standl = mapFirestoreStandl(
+        snapshot.id,
+        snapshot.data() as FirestoreStandl
+    );
+
+    const locations = await getStandlLocations(standlId);
+
+    return {
+        ...standl,
+        locations,
+    };
 }
 
 export async function getOwnerStandlFromFirestore(ownerId: string) {
@@ -169,7 +194,15 @@ type CreateStandlInput = StandlEditableFields & {
 };
 
 export async function createStandlInFirestore(input: CreateStandlInput) {
-    const standlRef = collection(firestoreDb, "standl");
+    const standlCollectionRef = collection(firestoreDb, "standl");
+    const standlRef = doc(standlCollectionRef);
+
+    const locationCollectionRef = collection(
+        standlRef,
+        "locations"
+    );
+
+    const locationRef = doc(locationCollectionRef);
 
     const isOwnerCreated = input.mode === "owner";
 
@@ -196,9 +229,31 @@ export async function createStandlInFirestore(input: CreateStandlInput) {
         updatedAt: serverTimestamp(),
     };
 
-    const createdDoc = await addDoc(standlRef, newStandl);
+    const initialLocation = {
+        locationName: input.locationName,
+        street: input.street,
+        streetNumber: input.streetNumber,
+        postalCode: input.postalCode,
+        city: input.city,
+        location: new GeoPoint(
+            input.latitude,
+            input.longitude
+        ),
+        source: isOwnerCreated ? "owner" : "community",
+        status: isOwnerCreated ? "verified" : "pending",
+        createdBy: input.createdBy,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    };
 
-    return createdDoc.id;
+    const batch = writeBatch(firestoreDb);
+
+    batch.set(standlRef, newStandl);
+    batch.set(locationRef, initialLocation);
+
+    await batch.commit();
+
+    return standlRef.id;
 }
 
 

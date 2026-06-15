@@ -6,36 +6,41 @@ import { calculateDistanceKm } from "@/lib/calculateDistance";
 import { formatDistance } from "@/lib/formatDistance";
 import { openNavigation } from "@/lib/openNavigation";
 import { formatStreetAddress } from "@/lib/formatStandlAddress";
+import { getStandlDisplayLocation } from "@/lib/getStandlDisplayLocation";
 
 import { Theme } from "@/constants/colors";
 import type { Standl } from "@/types/standl";
+import type { StandlLocation } from "@/types/standlLocation";
 import { NavigationIconButton } from "../buttons/NavigationIconButton";
 
 type StandlCardProps = {
     standl: Standl;
+    location?: StandlLocation;
     isFavorite?: boolean;
     onPress: () => void;
 };
 
-export function StandlCard({ standl, isFavorite = false, onPress }: StandlCardProps) {
+
+
+export function StandlCard({ standl, location, isFavorite = false, onPress }: StandlCardProps) {
     const icon = standl.category === "hendl" ? "🍗" : "🐟";
     const categoryLabel =
         standl.category === "hendl" ? "Hendlgriller" : "Steckerlfisch";
     const likeLabel =
         standl.category === "hendl" ? "Hendl-Likes" : "Fisch-Likes";
 
-    const streetValue = formatStreetAddress(standl);
-
     const { userLocation } = useUserLocation();
+    const displayLocation =
+        location ?? getStandlDisplayLocation(
+            standl,
+            userLocation
+        );
 
-    const distanceKm = userLocation
-        ? calculateDistanceKm(
-            userLocation,
-            {
-                latitude: standl.latitude,
-                longitude: standl.longitude,
-            }
-        )
+    const streetValue = displayLocation
+        ? formatStreetAddress(standl) : "";
+
+    const distanceKm = userLocation && displayLocation
+        ? calculateDistanceKm(userLocation, displayLocation)
         : undefined;
 
 
@@ -65,7 +70,8 @@ export function StandlCard({ standl, isFavorite = false, onPress }: StandlCardPr
                 </View>
 
                 <Text style={styles.meta}>
-                    {categoryLabel} · {standl.city}
+                    {categoryLabel}
+                    {displayLocation?.city ? ` · ${displayLocation.city}` : ""}
                 </Text>
 
                 {streetValue ? (
@@ -101,16 +107,18 @@ export function StandlCard({ standl, isFavorite = false, onPress }: StandlCardPr
                             </Text>
                         ) : null}
                     </View>
-                    <NavigationIconButton
-                        icon="navigate-outline"
-                        accessibilityLabel={`Route zu ${standl.name} öffnen`}
-                        onPress={() =>
-                            openNavigation({
-                                latitude: standl.latitude,
-                                longitude: standl.longitude,
-                            })
-                        }
-                    />
+                    {displayLocation ? (
+                        <NavigationIconButton
+                            icon="navigate-outline"
+                            accessibilityLabel={`Route zu ${standl.name} öffnen`}
+                            onPress={() =>
+                                openNavigation({
+                                    latitude: displayLocation.latitude,
+                                    longitude: displayLocation.longitude,
+                                })
+                            }
+                        />
+                    ) : null}
                 </View>
 
 

@@ -1,13 +1,15 @@
 import { Marker } from "react-native-maps";
 
 import type { Standl } from "@/types/standl";
+import type { StandlLocation } from "@/types/standlLocation";
 
 type StandlMapMarkerProps = {
     standl: Standl;
+    location: StandlLocation;
     onPress: () => void;
 };
 
-export function StandlMapMarker({ standl, onPress }: StandlMapMarkerProps) {
+export function StandlMapMarker({ standl, location, onPress }: StandlMapMarkerProps) {
     const markerImage =
         standl.category === "hendl"
             ? require("../../assets/images/map-pins/Pin_Hendl.png")
@@ -16,8 +18,8 @@ export function StandlMapMarker({ standl, onPress }: StandlMapMarkerProps) {
     return (
         <Marker
             coordinate={{
-                latitude: standl.latitude,
-                longitude: standl.longitude,
+                latitude: location.latitude,
+                longitude: location.longitude,
             }}
             onPress={onPress}
             anchor={{ x: 0.5, y: 1 }}

@@ -1,3 +1,5 @@
+import type { StandlLocation } from "@/types/standlLocation";
+
 export type StandlCategory = "hendl" | "steckerlfisch";
 
 export type OpeningStatusType =
@@ -13,6 +15,7 @@ export type Standl = {
     name: string;
     category: StandlCategory;
     locationName: string;
+    locations?: StandlLocation[];
     street?: string;
     streetNumber?: string;
     postalCode: string;
