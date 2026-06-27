@@ -165,9 +165,6 @@ export default function RegisterScreen() {
                         onPress={() => router.push(routes.login)}
                     />
 
-                    <Pressable onPress={() => router.back()}>
-                        <Text style={styles.backText}>Zurück</Text>
-                    </Pressable>
                 </View>
             </View>
         </KeyboardAvoidingView>
@@ -213,13 +210,6 @@ const styles = StyleSheet.create({
         color: Theme.error,
         fontSize: 14,
         lineHeight: 20,
-    },
-    backText: {
-        color: Theme.textSecondary,
-        fontSize: 15,
-        fontWeight: "700",
-        textAlign: "center",
-        marginTop: 6,
     },
     roleBox: {
         backgroundColor: Theme.card,

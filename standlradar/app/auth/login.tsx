@@ -18,15 +18,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { routes } from "@/lib/routes";
 
 export default function LoginScreen() {
-    const { loginWithEmail } = useAuth();
+    const { loginWithEmail, resetPassword } = useAuth();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     async function handleLogin() {
         setErrorMessage("");
+        setSuccessMessage("");
         setIsSubmitting(true);
 
         try {
@@ -37,6 +39,32 @@ export default function LoginScreen() {
             setErrorMessage("Login fehlgeschlagen. Prüfe E-Mail und Passwort.");
         } finally {
             setIsSubmitting(false);
+        }
+    }
+
+    async function handlePasswordReset() {
+        const trimmedEmail = email.trim();
+
+        if (!trimmedEmail) {
+            setErrorMessage("Bitte gib deine E-Mail-Adresse ein.");
+            setSuccessMessage("");
+            return;
+        }
+
+        try {
+            await resetPassword(trimmedEmail);
+
+            setErrorMessage("");
+            setSuccessMessage(
+                "Wenn ein Konto mit dieser E-Mail existiert, wurde eine E-Mail zum Zurücksetzen gesendet."
+            );
+        } catch (error) {
+            console.warn("Passwort-Zurücksetzen fehlgeschlagen:", error);
+
+            setSuccessMessage("");
+            setErrorMessage(
+                "Die E-Mail zum Zurücksetzen konnte nicht gesendet werden."
+            );
         }
     }
 
@@ -76,6 +104,12 @@ export default function LoginScreen() {
                         <Text style={styles.errorText}>{errorMessage}</Text>
                     ) : null}
 
+                    {successMessage ? (
+                        <Text style={styles.successText}>
+                            {successMessage}
+                        </Text>
+                    ) : null}
+
                     <PrimaryButton
                         label={isSubmitting ? "Einloggen..." : "Einloggen"}
                         onPress={handleLogin}
@@ -87,8 +121,8 @@ export default function LoginScreen() {
                         onPress={() => router.push("/auth/register")}
                     />
 
-                    <Pressable onPress={() => router.back()}>
-                        <Text style={styles.backText}>Zurück</Text>
+                    <Pressable onPress={handlePasswordReset}>
+                        <Text style={styles.forgptPw}>Passwort vergessen</Text>
                     </Pressable>
                 </View>
             </View>
@@ -136,11 +170,16 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 20,
     },
-    backText: {
+    forgptPw: {
         color: Theme.textSecondary,
         fontSize: 15,
         fontWeight: "700",
         textAlign: "center",
         marginTop: 6,
+    },
+    successText: {
+        color: Theme.success,
+        fontSize: 14,
+        lineHeight: 20,
     },
 });

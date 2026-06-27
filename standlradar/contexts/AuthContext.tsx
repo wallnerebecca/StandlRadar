@@ -3,6 +3,7 @@ import {
     createUserWithEmailAndPassword,
     onAuthStateChanged,
     signInWithEmailAndPassword,
+    sendPasswordResetEmail,
     signOut,
 } from "firebase/auth";
 import {
@@ -28,6 +29,7 @@ type AuthContextValue = {
         role?: UserRole
     ) => Promise<void>;
     loginWithEmail: (email: string, password: string) => Promise<void>;
+    resetPassword: (email: string) => Promise<void>;
     logout: () => Promise<void>;
 };
 
@@ -62,6 +64,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         await signInWithEmailAndPassword(firebaseAuth, email, password);
     }
 
+    async function resetPassword(email: string) {
+        await sendPasswordResetEmail(firebaseAuth, email);
+    }
+
     async function logout() {
         await signOut(firebaseAuth);
     }
@@ -72,6 +78,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             isLoading,
             registerWithEmail,
             loginWithEmail,
+            resetPassword,
             logout,
         }),
         [user, isLoading]
