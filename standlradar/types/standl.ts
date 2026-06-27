@@ -13,6 +13,8 @@ export type Standl = {
     name: string;
     category: StandlCategory;
     locationName: string;
+    street?: string;
+    streetNumber?: string;
     postalCode: string;
     city: string;
     latitude: number;
@@ -24,5 +26,7 @@ export type Standl = {
     };
     likes: number;
     isClaimed: boolean;
-    distanceKm?: number;
+    ownerId?: string;
+    createdBy?: string;
+    source?: "owner" | "community";
 };

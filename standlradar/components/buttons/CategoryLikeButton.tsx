@@ -8,6 +8,7 @@ type CategoryLikeButtonProps = {
     count: number;
     liked: boolean;
     onPress: () => void;
+    disabled?: boolean;
 };
 
 export function CategoryLikeButton({
@@ -15,22 +16,25 @@ export function CategoryLikeButton({
     count,
     liked,
     onPress,
+    disabled
 }: CategoryLikeButtonProps) {
     const icon = category === "hendl"
-        ? require("../assets/images/Icon_Hendl.png")
-        : require("../assets/images/Icon_Fisch.png");
+        ? require("../../assets/images/Icon_Hendl.png")
+        : require("../../assets/images/Icon_Fisch.png");
 
     return (
         <Pressable
             onPress={onPress}
+            disabled={disabled}
             style={({ pressed }) => [
                 styles.button,
                 liked && styles.buttonLiked,
-                pressed && styles.pressed,
+                disabled && styles.disabled,
+                pressed && !disabled && styles.pressed,
             ]}
         >
             <Image source={icon} style={[styles.icon, !liked && styles.iconMuted]} />
-            <Text style={[styles.count, liked && styles.countLiked]}>{count}</Text>
+            <Text style={[styles.count, liked && styles.countLiked, disabled && styles.countDisabled]}>{count}</Text>
         </Pressable>
     );
 }
@@ -54,6 +58,9 @@ const styles = StyleSheet.create({
     pressed: {
         opacity: 0.8,
     },
+    disabled: {
+        opacity: 0.6,
+    },
     icon: {
         width: 22,
         height: 22,
@@ -69,5 +76,8 @@ const styles = StyleSheet.create({
     },
     countLiked: {
         color: Theme.textPrimary,
+    },
+    countDisabled: {
+        color: Theme.textSecondary,
     },
 });

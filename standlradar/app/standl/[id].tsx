@@ -1,54 +1,169 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { InfoRow } from "@/components/InfoRow";
-import { ImageFavoriteButton } from "@/components/ImageFavoriteButton";
-import { OpeningStatusBadge } from "@/components/OpeningStatusBadge";
-import { PrimaryButton } from "@/components/PrimaryButton";
-import { SecondaryButton } from "@/components/SecondaryButton";
+import { ScreenState } from "@/components/layout/ScreenState";
+import { ScreenContainer } from "@/components/layout/ScreenContainer";
+import { InfoRow } from "@/components/standl/InfoRow";
+import { ImageFavoriteButton } from "@/components/buttons/ImageFavoriteButton";
+import { OpeningStatusBadge } from "@/components/standl/OpeningStatusBadge";
+import { PrimaryButton } from "@/components/buttons/PrimaryButton";
+import { SecondaryButton } from "@/components/buttons/SecondaryButton";
+import { CategoryLikeButton } from "@/components/buttons/CategoryLikeButton";
+
 import { Theme } from "@/constants/colors";
-import { mockStandl } from "@/constants/mockStandl";
-import { CategoryLikeButton } from "@/components/CategoryLikeButton";
+
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserLocation } from "@/contexts/UserLocationContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
+
+
+import {
+    getSingleStandlFromFirestore,
+    hasUserLikedStandl,
+    toggleStandlLike,
+} from "@/lib/standlService";
+import { calculateDistanceKm } from "@/lib/calculateDistance";
+import { openNavigation } from "@/lib/openNavigation";
+import { formatDistance } from "@/lib/formatDistance";
+import { routes } from "@/lib/routes";
+
+import { formatFullAddress } from "@/lib/formatStandlAddress";
+
+import type { Standl } from "@/types/standl";
 
 export default function StandlDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string; }>();
 
-    const standl = mockStandl.find((item) => item.id === id);
+    const [standl, setStandl] = useState<Standl | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState("");
 
-    if (!standl) {
+
+    useEffect(() => {
+        async function loadStandl() {
+            if (!id) {
+                setErrorMessage("Keine Standl-ID gefunden.");
+                setIsLoading(false);
+                return;
+            }
+
+            setIsLoading(true);
+
+            try {
+                setErrorMessage("");
+
+                const firestoreStandl = await getSingleStandlFromFirestore(id);
+
+                setStandl(firestoreStandl);
+            } catch (error) {
+                console.warn("Standl konnte nicht geladen werden:", error);
+                setErrorMessage("Standl konnte nicht geladen werden.");
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        loadStandl();
+    }, [id]);
+
+    if (isLoading) {
         return (
-            <View style={styles.notFoundContainer}>
-                <Text style={styles.notFoundTitle}>Standl nicht gefunden</Text>
-                <Text style={styles.notFoundText}>
-                    Dieses Standl gibt es in den Mock-Daten nicht.
-                </Text>
-
-                <PrimaryButton
-                    label="Zurück zum Radar"
-                    onPress={() => router.replace("/(tabs)/radar")}
-                />
-            </View>
+            <ScreenState message="Standl wird geladen..." />
         );
     }
 
+    if (!standl) {
+        return (
+            <ScreenState
+                title="Standl nicht gefunden"
+                message="Dieses Standl wurde nicht in der Datenbank gefunden."
+                primaryActionLabel="Zurück zum Radar"
+                onPrimaryAction={() =>
+                    router.replace(routes.radar)
+                }
+            />
+        );
+    }
+
+    return <StandlDetailContent standl={standl} />;
+}
+
+function StandlDetailContent({ standl }: { standl: Standl; }) {
     const { isFavorite, toggleFavorite } = useFavorites();
+    const { user } = useAuth();
+    const { userLocation } = useUserLocation();
+
     const favoriteActive = isFavorite(standl.id);
 
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(standl.likes);
+    const [isLikeSubmitting, setIsLikeSubmitting] = useState(false);
 
-    function handleLikePress() {
-        if (liked) {
-            setLiked(false);
-            setLikeCount((current) => current - 1);
+    useEffect(() => {
+        async function loadLikeStatus() {
+            if (!user) {
+                setLiked(false);
+                setLikeCount(standl.likes);
+                return;
+            }
+
+            try {
+                const userHasLiked = await hasUserLikedStandl(standl.id, user.uid);
+                setLiked(userHasLiked);
+                setLikeCount(standl.likes);
+            } catch (error) {
+                console.warn("Like-Status konnte nicht geladen werden:", error);
+                setLiked(false);
+            }
+        }
+
+        loadLikeStatus();
+    }, [standl.id, standl.likes, user]);
+
+    const canEditStandl = user?.uid === standl.ownerId;
+
+    const editButton = canEditStandl ? (
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Standl bearbeiten"
+            onPress={() => router.push(routes.standlEdit(standl.id))}
+            style={({ pressed }) => [
+                styles.editButton,
+                pressed && styles.editButtonPressed,
+            ]}
+        >
+            <Ionicons
+                name="pencil"
+                size={24}
+                color={Theme.textPrimary}
+            />
+        </Pressable>
+    ) : null;
+
+    async function handleLikePress() {
+        if (!user) {
+            router.push(routes.login);
             return;
         }
 
-        setLiked(true);
-        setLikeCount((current) => current + 1);
+        if (isLikeSubmitting) {
+            return;
+        }
+
+        setIsLikeSubmitting(true);
+
+        try {
+            const result = await toggleStandlLike(standl.id, user.uid);
+
+            setLiked(result.liked);
+            setLikeCount(result.likes);
+        } catch (error) {
+            console.warn("Like konnte nicht gespeichert werden:", error);
+        } finally {
+            setIsLikeSubmitting(false);
+        }
     }
 
     const categoryLabel =
@@ -56,9 +171,24 @@ export default function StandlDetailScreen() {
 
     const categoryIcon = standl.category === "hendl" ? "🍗" : "🐟";
 
+    const addressValue = formatFullAddress(standl);
+
+    const distanceKm = userLocation
+        ? calculateDistanceKm(
+            userLocation,
+            {
+                latitude: standl.latitude,
+                longitude: standl.longitude,
+            }
+        )
+        : undefined;
+
 
     return (
-        <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <ScreenContainer
+            contentStyle={styles.content}
+            floatingContent={editButton}
+        >
             <View style={styles.topBar}>
                 <SecondaryButton label="Zurück" onPress={() => router.back()} />
             </View>
@@ -81,6 +211,7 @@ export default function StandlDetailScreen() {
                         category={standl.category}
                         count={likeCount}
                         liked={liked}
+                        disabled={isLikeSubmitting}
                         onPress={handleLikePress}
                     />
                 </View>
@@ -116,19 +247,22 @@ export default function StandlDetailScreen() {
             <View style={styles.infoList}>
                 <InfoRow
                     icon="location-outline"
-                    label="Standort"
-                    value={`${standl.locationName}, ${standl.postalCode} ${standl.city}`}
+                    label="Adresse"
+                    value={addressValue || "Keine Adresse verfügbar"}
                 />
 
-                <InfoRow
-                    icon="navigate-outline"
-                    label="Entfernung"
-                    value={
-                        standl.distanceKm
-                            ? `${standl.distanceKm} km entfernt`
-                            : "Keine Entfernung verfügbar"
-                    }
-                />
+                {distanceKm !== undefined ? (
+                    <InfoRow
+                        icon="navigate-outline"
+                        label="Route in Google Maps öffnen"
+                        value={`${formatDistance(distanceKm)} entfernt`}
+                        onPress={() => openNavigation({
+                            latitude: standl.latitude,
+                            longitude: standl.longitude,
+                        })}
+                    />
+                ) : null}
+
             </View>
 
 
@@ -183,19 +317,14 @@ export default function StandlDetailScreen() {
                     onPress={() => console.log("Problem melden:", standl.id)}
                 />
             </View>
-        </ScrollView>
+        </ScreenContainer>
     );
 }
 
 const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: Theme.background,
-    },
     content: {
-        padding: 24,
-        paddingTop: 56,
-        paddingBottom: 40,
+        paddingTop: 20,
+        paddingBottom: 120,
     },
     topBar: {
         alignSelf: "flex-start",
@@ -289,23 +418,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 21,
     },
-    notFoundContainer: {
-        flex: 1,
-        backgroundColor: Theme.background,
-        padding: 24,
-        justifyContent: "center",
-        gap: 16,
-    },
-    notFoundTitle: {
-        color: Theme.textPrimary,
-        fontSize: 26,
-        fontWeight: "800",
-    },
-    notFoundText: {
-        color: Theme.textSecondary,
-        fontSize: 15,
-        lineHeight: 22,
-    },
     imageWrapper: {
         position: "relative",
         marginBottom: 22,
@@ -321,5 +433,29 @@ const styles = StyleSheet.create({
         right: 8,
         bottom: 30,
         zIndex: 10,
+    },
+    editButton: {
+        position: "absolute",
+        right: 20,
+        bottom: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: Theme.secondary,
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 30,
+        elevation: 8,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 3,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 5,
+    },
+    editButtonPressed: {
+        opacity: 0.8,
+        transform: [{ scale: 0.96 }],
     },
 });

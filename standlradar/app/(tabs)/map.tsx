@@ -1,19 +1,30 @@
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MapView from "react-native-maps";
+import MapView, { type Region } from "react-native-maps";
 
-import { FilterChip } from "@/components/FilterChip";
-import { StandlCard } from "@/components/StandlCard";
-import { StandlMapMarker } from "@/components/StandlMapMarker";
+
+import { StandlCard } from "@/components/standl/StandlCard";
+import { StandlMapMarker } from "@/components/standl/StandlMapMarker";
+import { StandlFilterChips } from "@/components/filters/StandlFilterContainer";
+
+
 import { Theme } from "@/constants/colors";
-import { mockStandl } from "@/constants/mockStandl";
+import { useStandl } from "@/hooks/useStandl";
 import { useFavorites } from "@/contexts/FavoritesContext";
-import type { Standl } from "@/types/standl";
 import { useStandlFilters } from "@/contexts/StandlFilterContext";
-import { filterStandl } from "@/lib/filterStandl";
+import { useUserLocation } from "@/contexts/UserLocationContext";
 
+import { filterStandl } from "@/lib/filterStandl";
+import { routes } from "@/lib/routes";
+
+const AUSTRIA_REGION: Region = {
+    latitude: 47.5162,
+    longitude: 14.5501,
+    latitudeDelta: 5.2,
+    longitudeDelta: 5.2,
+};
 
 export default function MapScreen() {
     const {
@@ -22,67 +33,81 @@ export default function MapScreen() {
         showOpenOnly,
         toggleOpenOnly,
     } = useStandlFilters();
-    const [selectedStandl, setSelectedStandl] = useState<Standl | null>(null);
+    const [selectedStandlId, setSelectedStandlId] = useState<string | null>(null);
 
     const { favoriteStandlIds } = useFavorites();
+    const { standl } = useStandl();
+
 
     const filteredStandl = useMemo(() => {
         return filterStandl({
-            standl: mockStandl,
+            standl,
             selectedCategory,
             showOpenOnly,
         });
-    }, [selectedCategory, showOpenOnly]);
+    }, [selectedCategory, showOpenOnly, standl]);
+
+
+
+    const mapRef = useRef<MapView | null>(null);
+
+    const {
+        userLocation,
+        isLoadingLocation,
+    } = useUserLocation();
+
+    const selectedStandl = useMemo(() => {
+        if (!selectedStandlId) {
+            return null;
+        }
+
+        return filteredStandl.find((item) => item.id === selectedStandlId) ?? null;
+    }, [selectedStandlId, filteredStandl]);
+
+
+    useEffect(() => {
+        if (isLoadingLocation || !userLocation) {
+            return;
+        }
+
+        mapRef.current?.animateToRegion(
+            {
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+                latitudeDelta: 0.08,
+                longitudeDelta: 0.08,
+            },
+            700
+        );
+    }, [isLoadingLocation, userLocation]);
+
 
     return (
-
-
-
         <SafeAreaView style={styles.screen} edges={["top"]}>
             <View style={styles.filterContainer}>
                 <Text style={styles.screenTitle}>Karte</Text>
 
-                <View style={styles.filterBar}>
-                    <FilterChip
-                        label="Alle"
-                        selected={selectedCategory === "all"}
-                        onPress={() => setSelectedCategory("all")}
-                    />
-
-                    <FilterChip
-                        label="Hendl"
-                        selected={selectedCategory === "hendl"}
-                        onPress={() => setSelectedCategory("hendl")}
-                    />
-
-                    <FilterChip
-                        label="Steckerlfisch"
-                        selected={selectedCategory === "steckerlfisch"}
-                        onPress={() => setSelectedCategory("steckerlfisch")}
-                    />
-
-                    <FilterChip
-                        label="Jetzt geöffnet"
-                        selected={showOpenOnly}
-                        onPress={toggleOpenOnly}
-                    />
-                </View>
+                <StandlFilterChips
+                    selectedCategory={selectedCategory}
+                    onChangeCategory={setSelectedCategory}
+                    showOpenOnly={showOpenOnly}
+                    onToggleOpenOnly={toggleOpenOnly}
+                />
             </View>
             <View style={styles.mapContainer}>
                 <MapView
+                    ref={mapRef}
                     style={styles.map}
-                    initialRegion={{
-                        latitude: 48.3069,
-                        longitude: 14.2858,
-                        latitudeDelta: 0.45,
-                        longitudeDelta: 0.45,
-                    }}
+                    initialRegion={AUSTRIA_REGION}
+                    showsUserLocation={Boolean(userLocation)}
+                    showsMyLocationButton={Boolean(userLocation)}
+                    toolbarEnabled={false}
                 >
                     {filteredStandl.map((standl) => (
                         <StandlMapMarker
                             key={standl.id}
                             standl={standl}
-                            onPress={() => setSelectedStandl(standl)}
+                            onPress={() => setSelectedStandlId(standl.id)}
                         />
                     ))}
                 </MapView>
@@ -101,7 +126,7 @@ export default function MapScreen() {
                         <View style={styles.previewHeader}>
                             <Text style={styles.previewTitle}>Ausgewähltes Standl</Text>
 
-                            <Pressable onPress={() => setSelectedStandl(null)}>
+                            <Pressable onPress={() => setSelectedStandlId(null)}>
                                 <Text style={styles.closeText}>Schließen</Text>
                             </Pressable>
                         </View>
@@ -110,7 +135,7 @@ export default function MapScreen() {
                             standl={selectedStandl}
                             isFavorite={favoriteStandlIds.includes(selectedStandl.id)}
                             onPress={() => {
-                                router.push(`/standl/${selectedStandl.id}`);
+                                router.push(routes.standlDetail(selectedStandl.id));
                             }}
                         />
                     </View>
@@ -147,11 +172,6 @@ const styles = StyleSheet.create({
     },
     map: {
         flex: 1,
-    },
-    filterBar: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        gap: 8,
     },
     preview: {
         position: "absolute",
@@ -202,4 +222,4 @@ const styles = StyleSheet.create({
         fontSize: 13,
         lineHeight: 18,
     },
-});;;
+});

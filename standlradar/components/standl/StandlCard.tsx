@@ -1,8 +1,15 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { useUserLocation } from "@/contexts/UserLocationContext";
+import { calculateDistanceKm } from "@/lib/calculateDistance";
+import { formatDistance } from "@/lib/formatDistance";
+import { openNavigation } from "@/lib/openNavigation";
+import { formatStreetAddress } from "@/lib/formatStandlAddress";
+
 import { Theme } from "@/constants/colors";
 import type { Standl } from "@/types/standl";
+import { NavigationIconButton } from "../buttons/NavigationIconButton";
 
 type StandlCardProps = {
     standl: Standl;
@@ -16,6 +23,21 @@ export function StandlCard({ standl, isFavorite = false, onPress }: StandlCardPr
         standl.category === "hendl" ? "Hendlgriller" : "Steckerlfisch";
     const likeLabel =
         standl.category === "hendl" ? "Hendl-Likes" : "Fisch-Likes";
+
+    const streetValue = formatStreetAddress(standl);
+
+    const { userLocation } = useUserLocation();
+
+    const distanceKm = userLocation
+        ? calculateDistanceKm(
+            userLocation,
+            {
+                latitude: standl.latitude,
+                longitude: standl.longitude,
+            }
+        )
+        : undefined;
+
 
     return (
         <Pressable
@@ -46,30 +68,52 @@ export function StandlCard({ standl, isFavorite = false, onPress }: StandlCardPr
                     {categoryLabel} · {standl.city}
                 </Text>
 
-                <Text style={styles.location}>{standl.locationName}</Text>
+                {streetValue ? (
+                    <Text style={styles.location}>
+                        {streetValue}
+                    </Text>
+                ) : null}
 
-                <Text
-                    style={[
-                        styles.status,
-                        ["likelyOpen", "opensLater"].includes(standl.openingStatus.type) &&
-                        styles.warning,
-                        ["closed", "temporaryClosed"].includes(standl.openingStatus.type) &&
-                        styles.error,
-                        standl.openingStatus.type === "unknown" && styles.neutral,
-                    ]}
-                >
-                    {standl.openingStatus.label}
-                </Text>
+
+                {standl.openingStatus.type !== "unknown" ? (
+                    <Text
+                        style={[
+                            styles.status,
+                            ["likelyOpen", "opensLater"].includes(standl.openingStatus.type) &&
+                            styles.warning,
+                            ["closed", "temporaryClosed"].includes(standl.openingStatus.type) &&
+                            styles.error,
+                        ]}
+                    >
+                        {standl.openingStatus.label}
+                    </Text>
+                ) : null}
 
                 <View style={styles.footer}>
-                    <Text style={styles.likes}>
-                        {standl.likes} {likeLabel}
-                    </Text>
+                    <View>
+                        <Text style={styles.likes}>
+                            {standl.likes} {likeLabel}
+                        </Text>
 
-                    {standl.distanceKm ? (
-                        <Text style={styles.distance}>{standl.distanceKm} km</Text>
-                    ) : null}
+                        {distanceKm !== undefined ? (
+                            <Text style={styles.distance}>
+                                {formatDistance(distanceKm)}
+                            </Text>
+                        ) : null}
+                    </View>
+                    <NavigationIconButton
+                        icon="navigate-outline"
+                        accessibilityLabel={`Route zu ${standl.name} öffnen`}
+                        onPress={() =>
+                            openNavigation({
+                                latitude: standl.latitude,
+                                longitude: standl.longitude,
+                            })
+                        }
+                    />
                 </View>
+
+
             </View>
         </Pressable>
     );
@@ -151,6 +195,7 @@ const styles = StyleSheet.create({
     },
     footer: {
         flexDirection: "row",
+        alignItems: "center",
         justifyContent: "space-between",
         gap: 12,
     },
@@ -163,5 +208,12 @@ const styles = StyleSheet.create({
         color: Theme.textSecondary,
         fontSize: 13,
         fontWeight: "600",
+    },
+    footerInfo: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
     },
 });
