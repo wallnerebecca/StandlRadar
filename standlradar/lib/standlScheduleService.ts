@@ -4,6 +4,7 @@ import {
     updateDoc,
     writeBatch,
     collection,
+    collectionGroup,
     getDocs,
     serverTimestamp,
 } from "firebase/firestore";
@@ -37,6 +38,34 @@ type ReplaceStandlSchedulesInput = {
     status: StandlSchedule["status"];
     createdBy: string;
 };
+
+type FirestoreStandlSchedule = {
+    weekday?: Weekday;
+    startTime?: string;
+    endTime?: string;
+    source?: StandlSchedule["source"];
+    status?: StandlSchedule["status"];
+    createdBy?: string;
+};
+
+function mapFirestoreStandlSchedule(
+    scheduleId: string,
+    standlId: string,
+    locationId: string,
+    data: FirestoreStandlSchedule
+): StandlSchedule {
+    return {
+        id: scheduleId,
+        standlId,
+        locationId,
+        weekday: data.weekday ?? 1,
+        startTime: data.startTime ?? "",
+        endTime: data.endTime ?? "",
+        source: data.source ?? "community",
+        status: data.status ?? "pending",
+        createdBy: data.createdBy ?? "",
+    };
+}
 
 export async function createStandlSchedule(
     input: CreateStandlScheduleInput
@@ -94,20 +123,41 @@ export async function getStandlLocationSchedules(
 
     const snapshot = await getDocs(schedulesRef);
 
-    return snapshot.docs.map((scheduleDoc) => {
-        const data = scheduleDoc.data();
-
-        return {
-            id: scheduleDoc.id,
+    return snapshot.docs.map((scheduleDoc) =>
+        mapFirestoreStandlSchedule(
+            scheduleDoc.id,
             standlId,
             locationId,
-            weekday: data.weekday,
-            startTime: data.startTime ?? "",
-            endTime: data.endTime ?? "",
-            source: data.source ?? "community",
-            status: data.status ?? "pending",
-            createdBy: data.createdBy ?? "",
-        };
+            scheduleDoc.data() as FirestoreStandlSchedule
+        )
+    );
+}
+
+export async function getAllStandlSchedules(): Promise<StandlSchedule[]> {
+    const schedulesRef = collectionGroup(firestoreDb, "schedules");
+    const snapshot = await getDocs(schedulesRef);
+
+    return snapshot.docs.map((scheduleDoc) => {
+        const locationRef = scheduleDoc.ref.parent.parent;
+        const standlRef = locationRef?.parent.parent;
+
+        if (
+            !locationRef ||
+            !standlRef ||
+            locationRef.parent.id !== "locations" ||
+            standlRef.parent.id !== "standl"
+        ) {
+            throw new Error(
+                `Standzeit ${scheduleDoc.id} liegt nicht unter einem Standl-Standort.`
+            );
+        }
+
+        return mapFirestoreStandlSchedule(
+            scheduleDoc.id,
+            standlRef.id,
+            locationRef.id,
+            scheduleDoc.data() as FirestoreStandlSchedule
+        );
     });
 }
 

@@ -282,7 +282,7 @@ function StandlDetailContent({
                                 size={15}
                                 color={Theme.textPrimary}
                             />
-                            <Text style={styles.claimedText}>Übernommen</Text>
+                            <Text style={styles.claimedText}>Offiziell</Text>
                         </View>
                     ) : null}
                 </View>

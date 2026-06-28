@@ -15,7 +15,10 @@ import {
 
 import { firestoreDb } from "@/lib/firebase";
 import type { Standl } from "@/types/standl";
-import { getStandlLocations } from "@/lib/standlLocationService";
+import {
+    getAllStandlLocations,
+    getStandlLocations,
+} from "@/lib/standlLocationService";
 
 type FirestoreOpeningStatus = {
     type: Standl["openingStatus"]["type"];
@@ -83,17 +86,40 @@ async function mapStandlWithLocations(
     };
 }
 
+async function mapStandlListWithLocations(
+    standlEntries: Array<{
+        id: string;
+        data: FirestoreStandl;
+    }>
+): Promise<Standl[]> {
+    const locations = await getAllStandlLocations();
+    const locationsByStandl = new Map<
+        string,
+        Standl["locations"]
+    >();
+
+    locations.forEach((location) => {
+        const currentLocations =
+            locationsByStandl.get(location.standlId) ?? [];
+        currentLocations.push(location);
+        locationsByStandl.set(location.standlId, currentLocations);
+    });
+
+    return standlEntries.map(({ id, data }) => ({
+        ...mapFirestoreStandl(id, data),
+        locations: locationsByStandl.get(id) ?? [],
+    }));
+}
+
 export async function getStandlFromFirestore() {
     const standlRef = collection(firestoreDb, "standl");
     const snapshot = await getDocs(standlRef);
 
-    return Promise.all(
-        snapshot.docs.map((standlDoc) =>
-            mapStandlWithLocations(
-                standlDoc.id,
-                standlDoc.data() as FirestoreStandl
-            )
-        )
+    return mapStandlListWithLocations(
+        snapshot.docs.map((standlDoc) => ({
+            id: standlDoc.id,
+            data: standlDoc.data() as FirestoreStandl,
+        }))
     );
 }
 
@@ -109,13 +135,11 @@ export function subscribeToStandlFromFirestore(
         (snapshot) => {
             const currentVersion = ++requestVersion;
 
-            void Promise.all(
-                snapshot.docs.map((standlDoc) =>
-                    mapStandlWithLocations(
-                        standlDoc.id,
-                        standlDoc.data() as FirestoreStandl
-                    )
-                )
+            void mapStandlListWithLocations(
+                snapshot.docs.map((standlDoc) => ({
+                    id: standlDoc.id,
+                    data: standlDoc.data() as FirestoreStandl,
+                }))
             )
                 .then((standl) => {
                     if (currentVersion === requestVersion) {

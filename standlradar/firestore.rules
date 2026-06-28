@@ -1,0 +1,294 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isCurrentUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isOwnerAccount() {
+      return isSignedIn()
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == "owner";
+    }
+
+    function ownsStandl(standlId) {
+      return isSignedIn()
+        && get(
+          /databases/$(database)/documents/standl/$(standlId)
+        ).data.ownerId == request.auth.uid;
+    }
+
+    function ownsStandlAfterWrite(standlId) {
+      return isSignedIn()
+        && getAfter(
+          /databases/$(database)/documents/standl/$(standlId)
+        ).data.ownerId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read: if isCurrentUser(userId);
+
+      allow create: if isCurrentUser(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role in ["user", "owner"]
+        && request.resource.data.wasOwner
+          == (request.resource.data.role == "owner")
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.keys().hasAll([
+          "uid",
+          "email",
+          "username",
+          "role",
+          "wasOwner",
+          "createdAt",
+          "updatedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "uid",
+          "email",
+          "username",
+          "role",
+          "wasOwner",
+          "createdAt",
+          "updatedAt"
+        ]);
+
+      allow update: if isCurrentUser(userId)
+        && resource.data.role == "user"
+        && request.resource.data.role == "owner"
+        && request.resource.data.wasOwner == true
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            "role",
+            "wasOwner",
+            "updatedAt"
+          ]);
+
+      allow delete: if false;
+
+      match /favorites/{standlId} {
+        allow read: if isCurrentUser(userId);
+
+        allow create, update: if isCurrentUser(userId)
+          && request.resource.data.standlId == standlId
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.keys().hasOnly([
+            "standlId",
+            "createdAt"
+          ]);
+
+        allow delete: if isCurrentUser(userId);
+      }
+    }
+
+    match /standl/{standlId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.likes == 0
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.category in [
+          "hendl",
+          "steckerlfisch"
+        ]
+        && (
+          (
+            request.resource.data.source == "community"
+            && request.resource.data.isClaimed == false
+            && request.resource.data.ownerId == null
+          )
+          ||
+          (
+            request.resource.data.source == "owner"
+            && isOwnerAccount()
+            && request.resource.data.isClaimed == true
+            && request.resource.data.ownerId == request.auth.uid
+          )
+        );
+
+      allow update: if ownsStandl(standlId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.isClaimed == true
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            "name",
+            "category",
+            "locationName",
+            "street",
+            "streetNumber",
+            "postalCode",
+            "city",
+            "location",
+            "updatedAt"
+          ]);
+
+      allow update: if isOwnerAccount()
+        && resource.data.isClaimed == false
+        && request.resource.data.isClaimed == true
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.claimedBy == request.auth.uid
+        && request.resource.data.claimedAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            "isClaimed",
+            "ownerId",
+            "claimedBy",
+            "claimedAt",
+            "updatedAt"
+          ]);
+
+      allow update: if isSignedIn()
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.likes is int
+        && request.resource.data.likes >= 0
+        && request.resource.data.diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            "likes",
+            "updatedAt"
+          ])
+        && (
+          (
+            request.resource.data.likes == resource.data.likes + 1
+            && !exists(
+              /databases/$(database)/documents/standl/$(standlId)/likes/$(request.auth.uid)
+            )
+            && existsAfter(
+              /databases/$(database)/documents/standl/$(standlId)/likes/$(request.auth.uid)
+            )
+          )
+          ||
+          (
+            request.resource.data.likes == resource.data.likes - 1
+            && exists(
+              /databases/$(database)/documents/standl/$(standlId)/likes/$(request.auth.uid)
+            )
+            && !existsAfter(
+              /databases/$(database)/documents/standl/$(standlId)/likes/$(request.auth.uid)
+            )
+          )
+        );
+
+      allow delete: if false;
+
+      match /likes/{userId} {
+        allow read: if isCurrentUser(userId);
+
+        allow create: if isCurrentUser(userId)
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.keys().hasOnly([
+            "userId",
+            "createdAt"
+          ]);
+
+        allow update: if false;
+        allow delete: if isCurrentUser(userId);
+      }
+
+      match /locations/{locationId} {
+        allow read: if true;
+
+        allow create: if isSignedIn()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && (
+            (
+              ownsStandlAfterWrite(standlId)
+              && request.resource.data.source == "owner"
+              && request.resource.data.status == "verified"
+            )
+            ||
+            (
+              getAfter(
+                /databases/$(database)/documents/standl/$(standlId)
+              ).data.createdBy == request.auth.uid
+              && getAfter(
+                /databases/$(database)/documents/standl/$(standlId)
+              ).data.source == "community"
+              && request.resource.data.source == "community"
+              && request.resource.data.status == "pending"
+            )
+          );
+
+        allow update: if ownsStandl(standlId)
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              "locationName",
+              "street",
+              "streetNumber",
+              "postalCode",
+              "city",
+              "location",
+              "updatedAt"
+            ]);
+
+        allow delete: if false;
+
+        match /schedules/{scheduleId} {
+          allow read: if true;
+
+          allow create: if ownsStandl(standlId)
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.source == "owner"
+            && request.resource.data.status == "verified"
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.weekday is int
+            && request.resource.data.weekday >= 1
+            && request.resource.data.weekday <= 7
+            && request.resource.data.startTime is string
+            && request.resource.data.endTime is string;
+
+          allow update: if ownsStandl(standlId)
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.weekday is int
+            && request.resource.data.weekday >= 1
+            && request.resource.data.weekday <= 7
+            && request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly([
+                "weekday",
+                "startTime",
+                "endTime",
+                "updatedAt"
+              ]);
+
+          allow delete: if ownsStandl(standlId);
+        }
+      }
+    }
+
+    match /{path=**}/locations/{locationId} {
+      allow read: if true;
+    }
+
+    match /{path=**}/schedules/{scheduleId} {
+      allow read: if true;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

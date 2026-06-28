@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useUserLocation } from "@/contexts/UserLocationContext";
@@ -25,7 +25,9 @@ type StandlCardProps = {
 
 
 export function StandlCard({ standl, location, isFavorite = false, onPress }: StandlCardProps) {
-    const icon = standl.category === "hendl" ? "🍗" : "🐟";
+    const icon = standl.category === "hendl"
+        ? require("../../assets/images/Icon_Hendl.png")
+        : require("../../assets/images/Icon_Fisch.png");
     const categoryLabel =
         standl.category === "hendl" ? "Hendlgriller" : "Steckerlfisch";
     const likeLabel =
@@ -61,23 +63,26 @@ export function StandlCard({ standl, location, isFavorite = false, onPress }: St
             onPress={onPress}
             style={({ pressed }) => [styles.card, pressed && styles.pressed]}
         >
-            <View style={styles.iconBox}>
-                <Text style={styles.icon}>{icon}</Text>
+            <View style={styles.categoryColumn}>
+                <View style={styles.iconBox}>
+                    <Image source={icon} style={styles.icon} />
+                </View>
+
+                {standl.isClaimed ? (
+                    <Text style={styles.claimedBadge}>Offiziell</Text>
+                ) : null}
             </View>
 
             <View style={styles.content}>
                 <View style={styles.titleRow}>
                     <Text style={styles.name}>{standl.name}</Text>
+
                     {isFavorite ? (
                         <Ionicons
                             name="heart"
                             size={18}
                             color={Theme.secondary}
                         />
-                    ) : null}
-
-                    {standl.isClaimed ? (
-                        <Text style={styles.claimedBadge}>Bestätigt</Text>
                     ) : null}
                 </View>
 
@@ -152,6 +157,10 @@ const styles = StyleSheet.create({
     pressed: {
         opacity: 0.85,
     },
+    categoryColumn: {
+        alignItems: "center",
+        gap: 6,
+    },
     iconBox: {
         width: 54,
         height: 54,
@@ -161,7 +170,9 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     icon: {
-        fontSize: 28,
+        width: 36,
+        height: 36,
+        resizeMode: "contain",
     },
     content: {
         flex: 1,
@@ -169,7 +180,7 @@ const styles = StyleSheet.create({
     titleRow: {
         flexDirection: "row",
         gap: 8,
-        alignItems: "center",
+        alignItems: "flex-start",
         marginBottom: 4,
     },
     name: {
@@ -181,9 +192,9 @@ const styles = StyleSheet.create({
     claimedBadge: {
         color: Theme.textPrimary,
         backgroundColor: Theme.success,
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: "700",
-        paddingHorizontal: 8,
+        paddingHorizontal: 6,
         paddingVertical: 4,
         borderRadius: 999,
         overflow: "hidden",
