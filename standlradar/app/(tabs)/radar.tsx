@@ -44,7 +44,7 @@ export default function RadarScreen() {
     } = useStandlFilters();
     const [activeView, setActiveView] = useState<ToggleValue>("search");
 
-    const { userProfile } = useAuth();
+    const { user, userProfile } = useAuth();
     const { userLocation } = useUserLocation();
 
     const { favoriteStandlIds } = useFavorites();
@@ -95,17 +95,19 @@ export default function RadarScreen() {
                 <View style={styles.ctaList}>
 
                     <OwnerStandlCTA role={userProfile?.role} />
-                    <RadarStartCTA
-                        title="Standl vorschlagen"
-                        description="Füge ein Hendl- oder Steckerlfisch-Standl zur Karte hinzu."
-                        icon="add-circle-outline"
-                        onPress={() => {
-                            router.push({
-                                pathname: "/standl/new",
-                                params: { mode: "community" },
-                            });
-                        }}
-                    />
+                    {user ? (
+                        <RadarStartCTA
+                            title="Standl vorschlagen"
+                            description="Füge ein Hendl- oder Steckerlfisch-Standl zur Karte hinzu."
+                            icon="add-circle-outline"
+                            onPress={() => {
+                                router.push({
+                                    pathname: "/standl/new",
+                                    params: { mode: "community" },
+                                });
+                            }}
+                        />
+                    ) : null}
 
                     <RadarStartCTA
                         title="Standl in der Nähe finden"
