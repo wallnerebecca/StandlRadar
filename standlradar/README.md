@@ -173,15 +173,14 @@ standl/{standlId}
 Ein Standl kann mehrere Standorte besitzen. Jeder Standort kann eigene
 Wochentage und Standzeiten enthalten.
 
-## Hinweise zum Prototyp
+## Hinweise
 
 - Die Owner-Rolle kann nicht wieder auf eine normale Nutzerrolle zurückgesetzt
   werden.
-- Owner-Accounts werden im Prototyp nicht extern verifiziert.
+- Owner-Accounts werden nicht extern verifiziert.
 - Preislisten, Bild-Uploads, Benachrichtigungen und temporäre Schließungen sind
   mögliche spätere Erweiterungen.
-- Für eine produktive Veröffentlichung wären zusätzliche automatisierte Tests
-  und eine vollständige Produktionskonfiguration erforderlich.
+
 
 ## Qualitätssicherung
 
