@@ -1,11 +1,12 @@
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppHeader } from "@/components/AppHeader";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
+import { SearchBar } from "@/components/search/SearchBar";
 import { StandlCard } from "@/components/standl/StandlCard";
 
 
@@ -31,6 +32,21 @@ export default function OwnerScreen() {
 
     const [ownerStandl, setOwnerStandl] = useState<Standl[]>([]);
     const [isOwnerStandlLoading, setIsOwnerStandlLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredOwnerStandl = useMemo(() => {
+        const normalizedQuery = searchQuery.trim().toLocaleLowerCase("de-AT");
+
+        if (!normalizedQuery) {
+            return ownerStandl;
+        }
+
+        return ownerStandl.filter((standl) =>
+            standl.name
+                .toLocaleLowerCase("de-AT")
+                .includes(normalizedQuery)
+        );
+    }, [ownerStandl, searchQuery]);
 
     useEffect(() => {
         async function loadOwnerStandl() {
@@ -128,17 +144,23 @@ export default function OwnerScreen() {
                 onPress={() => router.replace(routes.radar)}
             />
 
-            <View style={styles.card}>
-                <Text style={styles.cardTitle}>Deine Standl</Text>
+            <SearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Meine Standl durchsuchen"
+            />
+
+            <>
                 {isOwnerStandlLoading ? (
-                    <Text style={styles.cardText}>Standl werden geladen...</Text>
-                ) : ownerStandl.length > 0 ? (
+                    <Text style={styles.listMessage}>Standl werden geladen...</Text>
+                ) : filteredOwnerStandl.length > 0 ? (
                     <View style={styles.standlList}>
-                        {ownerStandl.map((standl) => (
+                        {filteredOwnerStandl.map((standl) => (
                             <StandlCard
                                 key={standl.id}
                                 standl={standl}
                                 isFavorite={favoriteStandlIds.includes(standl.id)}
+                                showOfficialBadge={false}
                                 onPress={() => {
                                     router.push(routes.standlDetail(standl.id));
                                 }}
@@ -146,11 +168,13 @@ export default function OwnerScreen() {
                         ))}
                     </View>
                 ) : (
-                    <Text style={styles.cardText}>
-                        Du hast noch keine Standl erstellt oder übernommen.
+                    <Text style={styles.listMessage}>
+                        {ownerStandl.length === 0
+                            ? "Du hast noch keine Standl erstellt oder übernommen."
+                            : `Kein Standl für „${searchQuery.trim()}“ gefunden.`}
                     </Text>
                 )}
-            </View>
+            </>
 
 
 
@@ -187,20 +211,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
         lineHeight: 22,
     },
-    card: {
-        backgroundColor: Theme.card,
-        borderColor: Theme.border,
-        borderWidth: 1,
-        borderRadius: 18,
-        padding: 16,
-        gap: 12,
-    },
-    cardTitle: {
-        color: Theme.textPrimary,
-        fontSize: 18,
-        fontWeight: "800",
-    },
-    cardText: {
+    listMessage: {
         color: Theme.textSecondary,
         fontSize: 15,
         lineHeight: 22,

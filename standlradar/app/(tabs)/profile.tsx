@@ -16,6 +16,13 @@ import { changeUserRoleToOwner } from "@/lib/userProfileService";
 
 import { useAuth } from "@/contexts/AuthContext";
 
+const locationStatusLabels = {
+    loading: "Wird geprüft …",
+    granted: "Freigegeben",
+    undetermined: "Noch nicht entschieden",
+    denied: "Abgelehnt",
+    blocked: "In den Geräteeinstellungen blockiert",
+} as const;
 
 export default function ProfileScreen() {
 
@@ -27,11 +34,7 @@ export default function ProfileScreen() {
         refreshUserProfile,
         logout,
     } = useAuth();
-    const {
-        permissionStatus,
-        userLocation,
-        isLoadingLocation,
-    } = useUserLocation();
+    const { permissionStatus } = useUserLocation();
     const [isRoleUpdating, setIsRoleUpdating] = useState(false);
     const [roleUpdateError, setRoleUpdateError] = useState("");
 
@@ -86,7 +89,11 @@ export default function ProfileScreen() {
                 showsVerticalScrollIndicator={false}>
                 <AppHeader
                     title="Profil"
-                    subtitle={`Servus ${userProfile?.username ?? 'unbekannt'}!`}
+                    subtitle={
+                        userProfile?.username
+                            ? `Servus ${userProfile.username}!`
+                            : "Servus!"
+                    }
                 />
                 <View style={styles.container}>
 
@@ -110,21 +117,17 @@ export default function ProfileScreen() {
 
 
                                 <Text style={styles.cardText}>
-                                    Standortstatus: {permissionStatus}
+                                    Standortstatus:{" "}
+                                    {locationStatusLabels[permissionStatus]}
                                 </Text>
-
-                                <Text style={styles.cardText}>
-                                    {isLoadingLocation
-                                        ? "Standort wird geladen..."
-                                        : userLocation
-                                            ? `Position verfügbar: ${userLocation.latitude.toFixed(4)}, ${userLocation.longitude.toFixed(4)}`
-                                            : "Keine Position verfügbar"}
-                                </Text>
-
-
 
                                 <PrimaryButton label="Ausloggen" onPress={logout} />
                             </View>
+                            <PrimaryButton
+                                label="So funktioniert StandlRadar"
+                                icon="information-circle-outline"
+                                onPress={() => router.push(routes.guide)}
+                            />
                             <View>
                                 {userProfile && userProfile.role !== "owner" ? (
                                     <>
@@ -153,20 +156,28 @@ export default function ProfileScreen() {
                         </View>
 
                     ) : (
-                        <View style={styles.card}>
-                            <Text style={styles.cardTitle}>Nicht eingeloggt</Text>
-                            <Text style={styles.cardText}>
-                                Mit Login kannst du später Favoriten dauerhaft speichern und Standl liken.
-                            </Text>
+                        <View style={styles.profile}>
+                            <View style={styles.card}>
+                                <Text style={styles.cardTitle}>Nicht eingeloggt</Text>
+                                <Text style={styles.cardText}>
+                                    Mit Login kannst du später Favoriten dauerhaft speichern und Standl liken.
+                                </Text>
+
+                                <PrimaryButton
+                                    label="Einloggen"
+                                    onPress={() => router.push(routes.login)}
+                                />
+
+                                <SecondaryButton
+                                    label="Registrieren"
+                                    onPress={() => router.push("/auth/register")}
+                                />
+                            </View>
 
                             <PrimaryButton
-                                label="Einloggen"
-                                onPress={() => router.push(routes.login)}
-                            />
-
-                            <SecondaryButton
-                                label="Registrieren"
-                                onPress={() => router.push("/auth/register")}
+                                label="StandlRadar kennenlernen"
+                                icon="information-circle-outline"
+                                onPress={() => router.push(routes.guide)}
                             />
                         </View>
                     )}

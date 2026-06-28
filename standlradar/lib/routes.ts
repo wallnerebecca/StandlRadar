@@ -3,6 +3,7 @@ export const routes = {
     radar: "/(tabs)/radar",
     owner: "/owner",
     profile: "/(tabs)/profile",
+    guide: "/guide",
 
     newOwnerStandl: "/standl/new?mode=owner",
     newCommunityStandl: "/standl/new?mode=community",

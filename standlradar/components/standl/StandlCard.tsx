@@ -19,12 +19,19 @@ type StandlCardProps = {
     standl: Standl;
     location?: StandlLocation;
     isFavorite?: boolean;
+    showOfficialBadge?: boolean;
     onPress: () => void;
 };
 
 
 
-export function StandlCard({ standl, location, isFavorite = false, onPress }: StandlCardProps) {
+export function StandlCard({
+    standl,
+    location,
+    isFavorite = false,
+    showOfficialBadge = true,
+    onPress,
+}: StandlCardProps) {
     const icon = standl.category === "hendl"
         ? require("../../assets/images/Icon_Hendl.png")
         : require("../../assets/images/Icon_Fisch.png");
@@ -68,7 +75,7 @@ export function StandlCard({ standl, location, isFavorite = false, onPress }: St
                     <Image source={icon} style={styles.icon} />
                 </View>
 
-                {standl.isClaimed ? (
+                {showOfficialBadge && standl.isClaimed ? (
                     <Text style={styles.claimedBadge}>Offiziell</Text>
                 ) : null}
             </View>
