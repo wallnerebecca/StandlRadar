@@ -116,7 +116,7 @@ function StandlDetailContent({
     onStandlChange: (standl: Standl) => void;
 }) {
     const { isFavorite, toggleFavorite } = useFavorites();
-    const { user } = useAuth();
+    const { user, userProfile } = useAuth();
 
 
     const favoriteActive = isFavorite(standl.id);
@@ -333,7 +333,7 @@ function StandlDetailContent({
                     onPress={() => console.log("Problem melden:", standl.id)}
                 /> */}
 
-                {!standl.isClaimed && user ? (
+                {!standl.isClaimed && userProfile?.role === "owner" ? (
                     <View style={styles.claimBox}>
                         <Text style={styles.claimTitle}>
                             Gehört dieses Standl dir?

@@ -1,10 +1,7 @@
-import { collection, onSnapshot } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
-import { getStandlFromFirestore } from "@/lib/standlService";
-import { mapFirestoreStandl } from "@/lib/standlService";
+import { subscribeToStandlFromFirestore } from "@/lib/standlService";
 import type { Standl } from "@/types/standl";
-import { firestoreDb } from "@/lib/firebase";
 
 
 export function useStandl() {
@@ -13,23 +10,11 @@ export function useStandl() {
     const [errorMessage, setErrorMessage] = useState("");
 
     useEffect(() => {
-        const standlRef = collection(firestoreDb, "standl");
-
-        const unsubscribe = onSnapshot(
-            standlRef,
-            async () => {
-                try {
-                    const firestoreStandl =
-                        await getStandlFromFirestore();
-
-                    setErrorMessage("");
-                    setStandl(firestoreStandl);
-                } catch (error) {
-                    console.warn("Standl konnten nicht geladen werden:", error);
-                    setErrorMessage("Standl konnten nicht geladen werden.");
-                } finally {
-                    setIsLoading(false);
-                }
+        return subscribeToStandlFromFirestore(
+            (firestoreStandl) => {
+                setStandl(firestoreStandl);
+                setErrorMessage("");
+                setIsLoading(false);
             },
             (error) => {
                 console.warn("Standl konnten nicht geladen werden:", error);
@@ -37,8 +22,6 @@ export function useStandl() {
                 setIsLoading(false);
             }
         );
-
-        return unsubscribe;
     }, []);
 
     return {

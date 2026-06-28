@@ -14,45 +14,23 @@ import { Theme } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 
-import { getUserProfile } from "@/lib/userProfileService";
 import { getOwnerStandlFromFirestore } from "@/lib/standlService";
 import { routes } from "@/lib/routes";
 
-import type { UserProfile } from "@/types/user";
 import type { Standl } from "@/types/standl";
 import { ScreenContainer } from "@/components/layout/ScreenContainer";
 
 export default function OwnerScreen() {
-    const { user, isLoading } = useAuth();
+    const {
+        user,
+        userProfile,
+        isLoading,
+        isProfileLoading,
+    } = useAuth();
     const { favoriteStandlIds } = useFavorites();
-
-    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-    const [isProfileLoading, setIsProfileLoading] = useState(true);
 
     const [ownerStandl, setOwnerStandl] = useState<Standl[]>([]);
     const [isOwnerStandlLoading, setIsOwnerStandlLoading] = useState(false);
-
-    useEffect(() => {
-        async function loadUserProfile() {
-            if (!user) {
-                setUserProfile(null);
-                setIsProfileLoading(false);
-                return;
-            }
-
-            try {
-                const profile = await getUserProfile(user.uid);
-                setUserProfile(profile);
-            } catch (error) {
-                console.warn("Userprofil konnte nicht geladen werden:", error);
-                setUserProfile(null);
-            } finally {
-                setIsProfileLoading(false);
-            }
-        }
-
-        loadUserProfile();
-    }, [user]);
 
     useEffect(() => {
         async function loadOwnerStandl() {
@@ -75,7 +53,7 @@ export default function OwnerScreen() {
         }
 
         loadOwnerStandl();
-    }, [user, userProfile]);
+    }, [user, userProfile?.role]);
 
 
     if (isLoading || isProfileLoading) {

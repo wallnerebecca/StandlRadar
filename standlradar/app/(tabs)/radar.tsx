@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -22,11 +22,8 @@ import { useUserLocation } from "@/contexts/UserLocationContext";
 import { routes } from "@/lib/routes";
 import { filterStandl } from "@/lib/filterStandl";
 import { calculateDistanceKm } from "@/lib/calculateDistance";
-import { getUserProfile } from "@/lib/userProfileService";
 
 import { useStandl } from "@/hooks/useStandl";
-
-import type { UserProfile } from "@/types/user";
 
 
 
@@ -47,28 +44,8 @@ export default function RadarScreen() {
     } = useStandlFilters();
     const [activeView, setActiveView] = useState<ToggleValue>("search");
 
-    const { user } = useAuth();
+    const { userProfile } = useAuth();
     const { userLocation } = useUserLocation();
-    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-
-    useEffect(() => {
-        async function loadUserProfile() {
-            if (!user) {
-                setUserProfile(null);
-                return;
-            }
-
-            try {
-                const profile = await getUserProfile(user.uid);
-                setUserProfile(profile);
-            } catch (error) {
-                console.warn("Userprofil konnte nicht geladen werden:", error);
-                setUserProfile(null);
-            }
-        }
-
-        loadUserProfile();
-    }, [user]);
 
     const { favoriteStandlIds } = useFavorites();
 

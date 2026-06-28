@@ -6,6 +6,7 @@ import {
     getDoc,
     getDocs,
     GeoPoint,
+    onSnapshot,
     runTransaction,
     serverTimestamp,
     where,
@@ -69,27 +70,71 @@ export function mapFirestoreStandl(documentId: string, data: FirestoreStandl): S
     };
 }
 
+async function mapStandlWithLocations(
+    documentId: string,
+    data: FirestoreStandl
+): Promise<Standl> {
+    const standl = mapFirestoreStandl(documentId, data);
+    const locations = await getStandlLocations(documentId);
+
+    return {
+        ...standl,
+        locations,
+    };
+}
+
 export async function getStandlFromFirestore() {
     const standlRef = collection(firestoreDb, "standl");
     const snapshot = await getDocs(standlRef);
 
-    const standlWithLocations = await Promise.all(
-        snapshot.docs.map(async (standlDoc) => {
-            const standl = mapFirestoreStandl(
+    return Promise.all(
+        snapshot.docs.map((standlDoc) =>
+            mapStandlWithLocations(
                 standlDoc.id,
                 standlDoc.data() as FirestoreStandl
-            );
+            )
+        )
+    );
+}
 
-            const locations = await getStandlLocations(standlDoc.id);
+export function subscribeToStandlFromFirestore(
+    onStandlChange: (standl: Standl[]) => void,
+    onError: (error: unknown) => void
+) {
+    const standlRef = collection(firestoreDb, "standl");
+    let requestVersion = 0;
 
-            return {
-                ...standl,
-                locations,
-            };
-        })
+    const unsubscribe = onSnapshot(
+        standlRef,
+        (snapshot) => {
+            const currentVersion = ++requestVersion;
+
+            void Promise.all(
+                snapshot.docs.map((standlDoc) =>
+                    mapStandlWithLocations(
+                        standlDoc.id,
+                        standlDoc.data() as FirestoreStandl
+                    )
+                )
+            )
+                .then((standl) => {
+                    if (currentVersion === requestVersion) {
+                        onStandlChange(standl);
+                    }
+                })
+                .catch((error: unknown) => {
+                    if (currentVersion === requestVersion) {
+                        onError(error);
+                    }
+                });
+        },
+        onError
     );
 
-    return standlWithLocations;
+    return () => {
+        requestVersion += 1;
+        unsubscribe();
+    };
 }
 
 export async function getSingleStandlFromFirestore(standlId: string) {

@@ -1,4 +1,10 @@
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+    doc,
+    getDoc,
+    updateDoc,
+    serverTimestamp,
+    setDoc
+} from "firebase/firestore";
 import type { User } from "firebase/auth";
 
 import { firestoreDb } from "@/lib/firebase";
@@ -28,6 +34,16 @@ export async function createUserProfile(
     };
 
     await setDoc(userRef, userProfile);
+}
+
+export async function changeUserRoleToOwner(uid: string) {
+    const userRef = doc(firestoreDb, "users", uid);
+
+    await updateDoc(userRef, {
+        role: "owner",
+        wasOwner: true,
+        updatedAt: serverTimestamp(),
+    });
 }
 
 export async function getUserProfile(uid: string) {

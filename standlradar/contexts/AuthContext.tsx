@@ -9,19 +9,30 @@ import {
 import {
     createContext,
     PropsWithChildren,
+    useCallback,
     useContext,
     useEffect,
     useMemo,
     useState,
 } from "react";
 
-import { createUserProfile } from "@/lib/userProfileService";
-import type { UserRole } from "@/types/user";
+import {
+    createUserProfile,
+    getUserProfile
+} from "@/lib/userProfileService";
+
+import type {
+    UserRole,
+    UserProfile
+} from "@/types/user";
 import { firebaseAuth } from "@/lib/firebase";
 
 type AuthContextValue = {
     user: User | null;
     isLoading: boolean;
+    userProfile: UserProfile | null;
+    isProfileLoading: boolean;
+    refreshUserProfile: () => Promise<void>;
     registerWithEmail: (
         email: string,
         password: string,
@@ -39,14 +50,60 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const [userProfile, setUserProfile] =
+        useState<UserProfile | null>(null);
+
+    const [isProfileLoading, setIsProfileLoading] =
+        useState(false);
+
+    const loadUserProfile = useCallback(async (uid: string) => {
+        setIsProfileLoading(true);
+
+        try {
+            const profile = await getUserProfile(uid);
+            setUserProfile(profile);
+        } catch (error) {
+            console.warn("Userprofil konnte nicht geladen werden:", error);
+            setUserProfile(null);
+        } finally {
+            setIsProfileLoading(false);
+        }
+    }, []);
+
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(firebaseAuth, (currentUser) => {
             setUser(currentUser);
+
+            if (!currentUser) {
+                setUserProfile(null);
+                setIsProfileLoading(false);
+            } else {
+                setIsProfileLoading(true);
+            }
+
             setIsLoading(false);
         });
 
         return unsubscribe;
     }, []);
+
+    useEffect(() => {
+        if (!user) {
+            return;
+        }
+
+        loadUserProfile(user.uid);
+    }, [user, loadUserProfile]);
+
+    const refreshUserProfile = useCallback(async () => {
+        if (!user) {
+            setUserProfile(null);
+            return;
+        }
+
+        await loadUserProfile(user.uid);
+    }, [user, loadUserProfile]);
 
     async function registerWithEmail(email: string, password: string,
         username: string,
@@ -58,6 +115,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             password
         );
         await createUserProfile(userCredential.user, username, role);
+        await loadUserProfile(userCredential.user.uid);
     }
 
     async function loginWithEmail(email: string, password: string) {
@@ -76,12 +134,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
         () => ({
             user,
             isLoading,
+            userProfile,
+            isProfileLoading,
+            refreshUserProfile,
             registerWithEmail,
             loginWithEmail,
             resetPassword,
             logout,
         }),
-        [user, isLoading]
+        [
+            user,
+            isLoading,
+            userProfile,
+            isProfileLoading,
+            refreshUserProfile,
+        ]
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,5 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { useEffect, useState } from "react";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -12,45 +12,70 @@ import { Theme } from "@/constants/colors";
 import { useUserLocation } from "@/contexts/UserLocationContext";
 
 import { routes } from "@/lib/routes";
-import { getUserProfile } from "@/lib/userProfileService";
-import type { UserProfile } from "@/types/user";
+import { changeUserRoleToOwner } from "@/lib/userProfileService";
 
 import { useAuth } from "@/contexts/AuthContext";
 
 
 export default function ProfileScreen() {
 
-    const { user, isLoading, logout } = useAuth();
+    const {
+        user,
+        userProfile,
+        isLoading,
+        isProfileLoading,
+        refreshUserProfile,
+        logout,
+    } = useAuth();
     const {
         permissionStatus,
         userLocation,
         isLoadingLocation,
     } = useUserLocation();
-    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-    const [isProfileLoading, setIsProfileLoading] = useState(false);
+    const [isRoleUpdating, setIsRoleUpdating] = useState(false);
+    const [roleUpdateError, setRoleUpdateError] = useState("");
 
-    useEffect(() => {
-        async function loadUserProfile() {
-            if (!user) {
-                setUserProfile(null);
-                return;
+    function showBecomeOwnerConfirmation() {
+        Alert.alert(
+            "Owner-Rolle aktivieren?",
+            "Als Owner kannst du eigene Standln verwalten, Standorte und Standzeiten hinzufügen sowie noch nicht übernommene Standln übernehmen.\n\nDein Account wird dabei dauerhaft zur Owner-Rolle geändert. Diese Änderung kann nicht rückgängig gemacht werden.\n\nMöchtest du wirklich fortfahren?",
+            [
+                {
+                    text: "Abbrechen",
+                    style: "cancel",
+                },
+                {
+                    text: "Ja, Owner werden",
+                    style: "destructive",
+                    onPress: handleBecomeOwner,
+                },
+            ],
+            {
+                cancelable: true,
             }
+        );
+    }
 
-            setIsProfileLoading(true);
-
-            try {
-                const profile = await getUserProfile(user.uid);
-                setUserProfile(profile);
-            } catch (error) {
-                console.warn("Userprofil konnte nicht geladen werden:", error);
-                setUserProfile(null);
-            } finally {
-                setIsProfileLoading(false);
-            }
+    async function handleBecomeOwner() {
+        if (!user || !userProfile || userProfile.role === "owner") {
+            return;
         }
 
-        loadUserProfile();
-    }, [user]);
+        setIsRoleUpdating(true);
+        setRoleUpdateError("");
+
+        try {
+            await changeUserRoleToOwner(user.uid);
+            await refreshUserProfile();
+        } catch (error) {
+            console.warn("Rolle konnte nicht geändert werden:", error);
+            setRoleUpdateError(
+                "Die Owner-Rolle konnte nicht aktiviert werden."
+            );
+        } finally {
+            setIsRoleUpdating(false);
+        }
+    }
 
 
     return (
@@ -99,6 +124,27 @@ export default function ProfileScreen() {
 
 
                                 <PrimaryButton label="Ausloggen" onPress={logout} />
+                            </View>
+                            <View>
+                                {userProfile && userProfile.role !== "owner" ? (
+                                    <>
+                                        {roleUpdateError ? (
+                                            <Text style={styles.errorText}>
+                                                {roleUpdateError}
+                                            </Text>
+                                        ) : null}
+
+                                        <SecondaryButton
+                                            label={
+                                                isRoleUpdating
+                                                    ? "Owner-Rolle wird aktiviert..."
+                                                    : "Owner werden"
+                                            }
+                                            onPress={showBecomeOwnerConfirmation}
+                                            disabled={isRoleUpdating}
+                                        />
+                                    </>
+                                ) : null}
                             </View>
                             <View>
                                 <OwnerStandlCTA role={userProfile?.role} />
@@ -175,5 +221,10 @@ const styles = StyleSheet.create({
         color: Theme.textSecondary,
         fontSize: 15,
         lineHeight: 22,
+    },
+    errorText: {
+        color: Theme.error,
+        fontSize: 14,
+        lineHeight: 20,
     },
 });;
