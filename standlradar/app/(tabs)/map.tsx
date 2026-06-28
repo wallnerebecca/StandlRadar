@@ -12,10 +12,12 @@ import { StandlFilterChips } from "@/components/filters/StandlFilterContainer";
 
 import { Theme } from "@/constants/colors";
 import { useStandl } from "@/hooks/useStandl";
+import { useCurrentTime } from "@/hooks/useCurrentTime";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { useStandlFilters } from "@/contexts/StandlFilterContext";
 import { useUserLocation } from "@/contexts/UserLocationContext";
 
+import { getLocationOpeningStatus } from "@/lib/getLocationOpeningStatus";
 import { filterStandl } from "@/lib/filterStandl";
 import { routes } from "@/lib/routes";
 
@@ -39,16 +41,39 @@ export default function MapScreen() {
     } | null>(null);
 
     const { favoriteStandlIds } = useFavorites();
-    const { standl } = useStandl();
+    const { standl, isLoading } = useStandl();
+    const currentTime = useCurrentTime();
 
 
     const filteredStandl = useMemo(() => {
         return filterStandl({
             standl,
             selectedCategory,
-            showOpenOnly,
+            showOpenOnly: false,
         });
-    }, [selectedCategory, showOpenOnly, standl]);
+    }, [selectedCategory, standl]);
+
+    const visibleMarkerItems = useMemo(() => {
+        return filteredStandl.flatMap((standl) =>
+            (standl.locations ?? [])
+                .filter((location) => {
+                    if (!showOpenOnly) {
+                        return true;
+                    }
+
+                    return (
+                        getLocationOpeningStatus(
+                            location,
+                            currentTime
+                        ).type === "open"
+                    );
+                })
+                .map((location) => ({
+                    standl,
+                    location,
+                }))
+        );
+    }, [filteredStandl, showOpenOnly, currentTime]);
 
     const mapRef = useRef<MapView | null>(null);
 
@@ -118,26 +143,35 @@ export default function MapScreen() {
                     showsMyLocationButton={Boolean(userLocation)}
                     toolbarEnabled={false}
                 >
-                    {filteredStandl.flatMap((standl) =>
-                        (standl.locations ?? []).map((location) => (
-                            <StandlMapMarker
-                                key={`${standl.id}-${location.id}`}
-                                standl={standl}
-                                location={location}
-                                onPress={() =>
-                                    setSelectedMarker({
-                                        standlId: standl.id,
-                                        locationId: location.id,
-                                    })
-                                }
-                            />
-                        ))
-                    )}
+                    {visibleMarkerItems.map(({ standl, location }) => (
+                        <StandlMapMarker
+                            key={`${standl.id}-${location.id}`}
+                            standl={standl}
+                            location={location}
+                            onPress={() =>
+                                setSelectedMarker({
+                                    standlId: standl.id,
+                                    locationId: location.id,
+                                })
+                            }
+                        />
+                    ))}
                 </MapView>
 
-                {filteredStandl.length === 0 ? (
+                {isLoading ? (
                     <View style={styles.mapEmptyState}>
-                        <Text style={styles.mapEmptyTitle}>Keine Standl gefunden</Text>
+                        <Text style={styles.mapEmptyTitle}>
+                            Standl werden geladen...
+                        </Text>
+                        <Text style={styles.mapEmptyText}>
+                            Die Karte wird vorbereitet.
+                        </Text>
+                    </View>
+                ) : visibleMarkerItems.length === 0 ? (
+                    <View style={styles.mapEmptyState}>
+                        <Text style={styles.mapEmptyTitle}>
+                            Keine Standl gefunden
+                        </Text>
                         <Text style={styles.mapEmptyText}>
                             Ändere deine Filter oder deaktiviere „Jetzt geöffnet“.
                         </Text>

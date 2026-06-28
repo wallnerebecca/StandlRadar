@@ -3,6 +3,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
 
+import { useCanEditStandl } from "@/hooks/useCanEditStandl";
+
+import { OwnerStandlOption } from "@/components/owner/OwnerStandlOption";
 import { ScreenState } from "@/components/layout/ScreenState";
 import { ScreenContainer } from "@/components/layout/ScreenContainer";
 import { ImageFavoriteButton } from "@/components/buttons/ImageFavoriteButton";
@@ -19,6 +22,7 @@ import { useFavorites } from "@/contexts/FavoritesContext";
 
 
 import {
+    claimStandlInFirestore,
     getSingleStandlFromFirestore,
     hasUserLikedStandl,
     toggleStandlLike,
@@ -96,10 +100,21 @@ export default function StandlDetailScreen() {
     }
 
 
-    return <StandlDetailContent standl={standl} />;
+    return (
+        <StandlDetailContent
+            standl={standl}
+            onStandlChange={setStandl}
+        />
+    );
 }
 
-function StandlDetailContent({ standl }: { standl: Standl; }) {
+function StandlDetailContent({
+    standl,
+    onStandlChange
+}: {
+    standl: Standl;
+    onStandlChange: (standl: Standl) => void;
+}) {
     const { isFavorite, toggleFavorite } = useFavorites();
     const { user } = useAuth();
 
@@ -109,6 +124,9 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
     const [liked, setLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(standl.likes);
     const [isLikeSubmitting, setIsLikeSubmitting] = useState(false);
+
+    const [isClaimSubmitting, setIsClaimSubmitting] = useState(false);
+    const [claimErrorMessage, setClaimErrorMessage] = useState("");
 
     useEffect(() => {
         async function loadLikeStatus() {
@@ -131,25 +149,27 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
         loadLikeStatus();
     }, [standl.id, standl.likes, user]);
 
-    const canEditStandl = user?.uid === standl.ownerId;
+    const canEditStandl = useCanEditStandl(standl);
 
-    const editButton = canEditStandl ? (
-        <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Standl bearbeiten"
-            onPress={() => router.push(routes.standlEdit(standl.id))}
-            style={({ pressed }) => [
-                styles.editButton,
-                pressed && styles.editButtonPressed,
-            ]}
-        >
-            <Ionicons
-                name="pencil"
-                size={24}
-                color={Theme.textPrimary}
-            />
-        </Pressable>
-    ) : null;
+    const editButton = (
+        <OwnerStandlOption standl={standl}>
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Standl bearbeiten"
+                onPress={() => router.push(routes.standlEdit(standl.id))}
+                style={({ pressed }) => [
+                    styles.editButton,
+                    pressed && styles.editButtonPressed,
+                ]}
+            >
+                <Ionicons
+                    name="pencil"
+                    size={24}
+                    color={Theme.textPrimary}
+                />
+            </Pressable>
+        </OwnerStandlOption>
+    );
 
     async function handleLikePress() {
         if (!user) {
@@ -175,6 +195,38 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
         }
     }
 
+    async function handleClaimStandl() {
+        setClaimErrorMessage("");
+
+        if (!user) {
+            router.push(routes.login);
+            return;
+        }
+
+        if (standl.isClaimed || isClaimSubmitting) {
+            return;
+        }
+
+        setIsClaimSubmitting(true);
+
+        try {
+            await claimStandlInFirestore(standl.id, user.uid);
+
+            onStandlChange({
+                ...standl,
+                isClaimed: true,
+                ownerId: user.uid,
+            });
+        } catch (error) {
+            console.warn("Standl konnte nicht übernommen werden:", error);
+            setClaimErrorMessage(
+                "Dieses Standl konnte nicht übernommen werden."
+            );
+        } finally {
+            setIsClaimSubmitting(false);
+        }
+    }
+
     const categoryLabel =
         standl.category === "hendl" ? "Hendlgriller" : "Steckerlfisch";
 
@@ -185,9 +237,15 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
             contentStyle={styles.content}
             floatingContent={editButton}
         >
-            <View style={styles.topBar}>
-                <SecondaryButton label="Zurück" onPress={() => router.back()} />
-            </View>
+
+            {canEditStandl ? (
+                <View style={styles.topBar}>
+                    <SecondaryButton
+                        label="Zu meine Standl"
+                        onPress={() => router.replace(routes.owner)}
+                    />
+                </View>
+            ) : null}
 
             <View style={styles.imageWrapper}>
                 <View style={styles.imagePlaceholder}>
@@ -224,7 +282,7 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
                                 size={15}
                                 color={Theme.textPrimary}
                             />
-                            <Text style={styles.claimedText}>Bestätigt</Text>
+                            <Text style={styles.claimedText}>Übernommen</Text>
                         </View>
                     ) : null}
                 </View>
@@ -238,11 +296,25 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
                 </Text>
             </View>
 
+
             <StandlLocationsSection
                 locations={standl.locations ?? []}
                 canEdit={canEditStandl}
                 standlId={standl.id}
             />
+
+            <OwnerStandlOption standl={standl}>
+                <View style={styles.ownerLocationActions}>
+                    <SecondaryButton
+                        label="Standort hinzufügen"
+                        onPress={() =>
+                            router.push(
+                                routes.newStandlLocation(standl.id)
+                            )
+                        }
+                    />
+                </View>
+            </OwnerStandlOption>
 
             <View style={styles.actionGrid}>
                 <PrimaryButton
@@ -251,7 +323,7 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
                     onPress={() => toggleFavorite(standl.id)}
                 />
 
-                <SecondaryButton
+                {/*                 <SecondaryButton
                     label="Standzeit vorschlagen"
                     onPress={() => console.log("Standzeit vorschlagen:", standl.id)}
                 />
@@ -259,7 +331,35 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
                 <SecondaryButton
                     label="Problem melden"
                     onPress={() => console.log("Problem melden:", standl.id)}
-                />
+                /> */}
+
+                {!standl.isClaimed && user ? (
+                    <View style={styles.claimBox}>
+                        <Text style={styles.claimTitle}>
+                            Gehört dieses Standl dir?
+                        </Text>
+
+                        <Text style={styles.claimText}>
+                            Du kannst dieses noch nicht übernommene Standl übernehmen und danach bearbeiten.
+                        </Text>
+
+                        {claimErrorMessage ? (
+                            <Text style={styles.errorText}>
+                                {claimErrorMessage}
+                            </Text>
+                        ) : null}
+
+                        <PrimaryButton
+                            label={
+                                isClaimSubmitting
+                                    ? "Standl wird übernommen..."
+                                    : "Standl übernehmen"
+                            }
+                            onPress={handleClaimStandl}
+                            disabled={isClaimSubmitting}
+                        />
+                    </View>
+                ) : null}
             </View>
         </ScreenContainer>
     );
@@ -268,7 +368,6 @@ function StandlDetailContent({ standl }: { standl: Standl; }) {
 const styles = StyleSheet.create({
     content: {
         paddingTop: 20,
-        paddingBottom: 120,
     },
     topBar: {
         alignSelf: "flex-start",
@@ -330,10 +429,6 @@ const styles = StyleSheet.create({
         gap: 10,
         marginBottom: 28,
     },
-    sectionHeader: {
-        gap: 10,
-        marginBottom: 12,
-    },
     imageWrapper: {
         position: "relative",
         marginBottom: 22,
@@ -374,11 +469,33 @@ const styles = StyleSheet.create({
         opacity: 0.8,
         transform: [{ scale: 0.96 }],
     },
-    locationsSection: {
-        marginTop: 18,
-        marginBottom: 22,
+    ownerLocationActions: {
+        marginTop: -10,
+        marginBottom: 18,
     },
-    locationList: {
-        gap: 18,
+    claimBox: {
+        backgroundColor: Theme.surface,
+        borderColor: Theme.border,
+        borderWidth: 1,
+        borderRadius: 18,
+        padding: 14,
+        gap: 10,
+        marginBottom: 18,
+        marginTop: 10,
+    },
+    claimTitle: {
+        color: Theme.textPrimary,
+        fontSize: 16,
+        fontWeight: "800",
+    },
+    claimText: {
+        color: Theme.textSecondary,
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    errorText: {
+        color: Theme.error,
+        fontSize: 14,
+        lineHeight: 20,
     },
 });

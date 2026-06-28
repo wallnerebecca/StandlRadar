@@ -62,7 +62,7 @@ export default function NewStandlScheduleScreen() {
     const [errorMessage, setErrorMessage] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [canAddSchedule, setCanAddSchedule] = useState(false);
+    const [canManageSchedule, setCanManageSchedule] = useState(false);
 
     const [scheduleDrafts, setScheduleDrafts] = useState<ScheduleDraft[]>([]);
     const [hadExistingSchedules, setHadExistingSchedules] = useState(false);
@@ -153,7 +153,8 @@ export default function NewStandlScheduleScreen() {
                     return;
                 }
 
-                const existingSchedules = location.schedules ?? [];
+                const existingSchedules = (location.schedules ?? []).filter(
+                    (schedule) => schedule.status === "verified");
 
                 setHadExistingSchedules(
                     existingSchedules.length > 0
@@ -179,7 +180,7 @@ export default function NewStandlScheduleScreen() {
                     "Ausgewählter Standort"
                 );
 
-                setCanAddSchedule(true);
+                setCanManageSchedule(true);
             } catch (error) {
                 console.warn(
                     "Standl oder Standort konnte nicht geprüft werden:",
@@ -329,7 +330,7 @@ export default function NewStandlScheduleScreen() {
             !id ||
             !locationId ||
             !user ||
-            !canAddSchedule
+            !canManageSchedule
         ) {
             setErrorMessage(
                 "Die Standzeiten können nicht gespeichert werden."
@@ -385,7 +386,7 @@ export default function NewStandlScheduleScreen() {
             !id ||
             !locationId ||
             !user ||
-            !canAddSchedule
+            !canManageSchedule
         ) {
             setErrorMessage(
                 "Die Standzeiten können nicht gelöscht werden."
@@ -426,7 +427,7 @@ export default function NewStandlScheduleScreen() {
         );
     }
 
-    if (!canAddSchedule) {
+    if (!canManageSchedule) {
         return (
             <ScreenState
                 title="Standzeiten verwalten nicht möglich"
@@ -452,7 +453,7 @@ export default function NewStandlScheduleScreen() {
         <FormScreen contentStyle={styles.content}>
             <Text style={styles.title}>
                 {hadExistingSchedules
-                    ? "Standzeiten ändern"
+                    ? "Standzeiten bearbeiten"
                     : "Standzeiten hinzufügen"}
             </Text>
 

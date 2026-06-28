@@ -37,6 +37,8 @@ type FirestoreStandl = {
     isClaimed?: boolean;
     ownerId?: string | null;
     createdBy?: string;
+    claimedAt?: unknown;
+    claimedBy?: string;
     source?: "owner" | "community";
 };
 
@@ -176,6 +178,8 @@ export async function toggleStandlLike(standlId: string, userId: string) {
     });
 }
 
+
+
 type StandlEditableFields = {
     name: string;
     category: Standl["category"];
@@ -256,6 +260,40 @@ export async function createStandlInFirestore(input: CreateStandlInput) {
     return standlRef.id;
 }
 
+export async function claimStandlInFirestore(
+    standlId: string,
+    ownerId: string
+) {
+    const standlRef = doc(firestoreDb, "standl", standlId);
+
+    return runTransaction(firestoreDb, async (transaction) => {
+        const standlSnapshot = await transaction.get(standlRef);
+
+        if (!standlSnapshot.exists()) {
+            throw new Error("Standl existiert nicht.");
+        }
+
+        const currentStandl = standlSnapshot.data();
+
+        if (currentStandl.isClaimed === true) {
+            throw new Error("Dieses Standl wurde bereits übernommen.");
+        }
+
+        transaction.update(standlRef, {
+            isClaimed: true,
+            ownerId,
+            claimedAt: serverTimestamp(),
+            claimedBy: ownerId,
+            updatedAt: serverTimestamp(),
+        });
+
+        return {
+            isClaimed: true,
+            ownerId,
+        };
+    });
+}
+
 
 
 export async function updateOwnerStandlInFirestore(
@@ -290,6 +328,38 @@ export async function updateOwnerStandlInFirestore(
             input.latitude,
             input.longitude
         ),
+        updatedAt: serverTimestamp(),
+    });
+}
+
+type UpdateStandlBaseInfoInput = {
+    name: string;
+    category: Standl["category"];
+};
+
+export async function updateOwnerStandlBaseInfoInFirestore(
+    standlId: string,
+    ownerId: string,
+    input: UpdateStandlBaseInfoInput
+) {
+    const standlRef = doc(firestoreDb, "standl", standlId);
+    const standlSnapshot = await getDoc(standlRef);
+
+    if (!standlSnapshot.exists()) {
+        throw new Error("Standl existiert nicht.");
+    }
+
+    const currentStandl = standlSnapshot.data();
+
+    if (!currentStandl.isClaimed || currentStandl.ownerId !== ownerId) {
+        throw new Error(
+            "Dieses Standl gehört nicht zum eingeloggten Besitzerkonto."
+        );
+    }
+
+    await updateDoc(standlRef, {
+        name: input.name,
+        category: input.category,
         updatedAt: serverTimestamp(),
     });
 }

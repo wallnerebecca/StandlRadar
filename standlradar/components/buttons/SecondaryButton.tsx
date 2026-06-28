@@ -4,15 +4,20 @@ import { Theme } from "@/constants/colors";
 type SecondaryButtonProps = {
     label: string;
     onPress: () => void;
+    disabled?: boolean;
 };
 
-export function SecondaryButton({ label, onPress }: SecondaryButtonProps) {
+export function SecondaryButton({ label, onPress, disabled = false }: SecondaryButtonProps) {
     return (
         <Pressable
             onPress={onPress}
-            style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+            style={({ pressed }) => [
+                styles.button,
+                pressed && !disabled && styles.pressed,
+                disabled && styles.disabled,
+            ]}
         >
-            <Text style={styles.label}>{label}</Text>
+            <Text style={[styles.label, disabled && styles.disabledLabel,]}>{label}</Text>
         </Pressable>
     );
 }
@@ -35,4 +40,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "600",
     },
+    disabled: {
+        opacity: 0.5,
+    },
+    disabledLabel: {
+        opacity: 0.8,
+    }
 });

@@ -1,5 +1,7 @@
 import {
     addDoc,
+    updateDoc,
+    doc,
     collection,
     GeoPoint,
     getDocs,
@@ -22,6 +24,18 @@ type CreateStandlLocationInput = {
     source: StandlLocation["source"];
     status: StandlLocation["status"];
     createdBy: string;
+};
+
+type UpdateStandlLocationInput = {
+    standlId: string;
+    locationId: string;
+    locationName: string;
+    street: string;
+    streetNumber: string;
+    postalCode: string;
+    city: string;
+    latitude: number;
+    longitude: number;
 };
 
 export async function createStandlLocation(
@@ -56,7 +70,52 @@ export async function createStandlLocation(
         locationData
     );
 
+    const standlRef = doc(
+        firestoreDb,
+        "standl",
+        input.standlId
+    );
+
+    await updateDoc(standlRef, {
+        updatedAt: serverTimestamp(),
+    });
+
     return createdLocation.id;
+}
+
+export async function updateStandlLocation(
+    input: UpdateStandlLocationInput
+) {
+    const locationRef = doc(
+        firestoreDb,
+        "standl",
+        input.standlId,
+        "locations",
+        input.locationId
+    );
+
+    await updateDoc(locationRef, {
+        locationName: input.locationName,
+        street: input.street,
+        streetNumber: input.streetNumber,
+        postalCode: input.postalCode,
+        city: input.city,
+        location: new GeoPoint(
+            input.latitude,
+            input.longitude
+        ),
+        updatedAt: serverTimestamp(),
+    });
+
+    const standlRef = doc(
+        firestoreDb,
+        "standl",
+        input.standlId
+    );
+
+    await updateDoc(standlRef, {
+        updatedAt: serverTimestamp(),
+    });
 }
 
 export async function getStandlLocations(

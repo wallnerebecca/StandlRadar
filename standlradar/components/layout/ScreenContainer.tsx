@@ -59,6 +59,6 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         paddingHorizontal: 24,
         paddingTop: 20,
-        paddingBottom: 40,
+        paddingBottom: 24,
     },
 });

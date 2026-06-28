@@ -1,6 +1,7 @@
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppHeader } from "@/components/AppHeader";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
@@ -18,7 +19,8 @@ import { getOwnerStandlFromFirestore } from "@/lib/standlService";
 import { routes } from "@/lib/routes";
 
 import type { UserProfile } from "@/types/user";
-import { Standl } from "@/types/standl";
+import type { Standl } from "@/types/standl";
+import { ScreenContainer } from "@/components/layout/ScreenContainer";
 
 export default function OwnerScreen() {
     const { user, isLoading } = useAuth();
@@ -115,11 +117,37 @@ export default function OwnerScreen() {
         );
     }
 
+    const addStandlButton = (
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Standl hinzufügen"
+            onPress={() => router.push(routes.newOwnerStandl)}
+            style={({ pressed }) => [
+                styles.floatingAddButton,
+                pressed && styles.pressed,
+            ]}
+        >
+            <Ionicons
+                name="add"
+                size={30}
+                color={Theme.textPrimary}
+            />
+        </Pressable>
+    );
+
     return (
-        <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <ScreenContainer
+            contentStyle={styles.content}
+            floatingContent={addStandlButton}
+        >
             <AppHeader
                 title="Meine Standl"
-                subtitle="Verwalte deine Standl, Standzeiten und Informationen."
+                subtitle="Verwalte Standorte und Zeiten deiner Standl."
+            />
+
+            <SecondaryButton
+                label="Zum Radar"
+                onPress={() => router.replace(routes.radar)}
             />
 
             <View style={styles.card}>
@@ -144,37 +172,19 @@ export default function OwnerScreen() {
                         Du hast noch keine Standl erstellt oder übernommen.
                     </Text>
                 )}
-
-                <PrimaryButton
-                    label="Standl hinzufügen"
-                    onPress={() => {
-                        router.push({
-                            pathname: "/standl/new",
-                            params: { mode: "owner" },
-                        });
-                    }}
-                />
             </View>
 
-            <View style={styles.card}>
-                <Text style={styles.cardTitle}>Geplante Funktionen</Text>
-                <Text style={styles.cardText}>
-                    Öffnungszeiten, Preise, Heute-geschlossen-Status, Bilder und
-                    Standortdaten werden später hier bearbeitet.
-                </Text>
-            </View>
-        </ScrollView >
+
+
+
+        </ScreenContainer>
     );
 }
 
 const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: Theme.background,
-    },
     content: {
-        padding: 24,
-        paddingTop: 64,
+        paddingHorizontal: 24,
+        paddingTop: 20,
         gap: 16,
     },
     centeredScreen: {
@@ -219,5 +229,27 @@ const styles = StyleSheet.create({
     },
     standlList: {
         gap: 12,
+    },
+    floatingAddButton: {
+        position: "absolute",
+        right: 24,
+        bottom: 24,
+        width: 58,
+        height: 58,
+        borderRadius: 29,
+        backgroundColor: Theme.secondary,
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    pressed: {
+        opacity: 0.8,
     },
 });

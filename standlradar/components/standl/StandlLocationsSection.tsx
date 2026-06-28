@@ -4,7 +4,12 @@ import { StyleSheet, Text, View } from "react-native";
 import { StandlLocationCard } from "@/components/standl/StandlLocationCard";
 import { Theme } from "@/constants/colors";
 import { useUserLocation } from "@/contexts/UserLocationContext";
+
+import { getLocationOpeningStatus } from "@/lib/getLocationOpeningStatus";
 import { calculateDistanceKm } from "@/lib/calculateDistance";
+
+import { useCurrentTime } from "@/hooks/useCurrentTime";
+
 import type { StandlLocation } from "@/types/standlLocation";
 
 type StandlLocationsSectionProps = {
@@ -13,42 +18,82 @@ type StandlLocationsSectionProps = {
     standlId: string;
 };
 
+function getNearestLocation(
+    locations: StandlLocation[],
+    userLocation?: {
+        latitude: number;
+        longitude: number;
+    } | null
+) {
+    if (!userLocation) {
+        return locations[0];
+    }
+
+    return locations.reduce((nearestLocation, currentLocation) => {
+        const nearestDistance = calculateDistanceKm(
+            userLocation,
+            nearestLocation
+        );
+
+        const currentDistance = calculateDistanceKm(
+            userLocation,
+            currentLocation
+        );
+
+        return currentDistance < nearestDistance
+            ? currentLocation
+            : nearestLocation;
+    });
+}
+
 export function StandlLocationsSection({
     locations,
     canEdit,
     standlId,
 }: StandlLocationsSectionProps) {
     const { userLocation } = useUserLocation();
+    const currentTime = useCurrentTime();
 
     const initialLocationId = useMemo(() => {
         if (locations.length === 0) {
             return null;
         }
 
-        if (!userLocation) {
-            return locations[0].id;
-        }
-
-        const nearestLocation = locations.reduce(
-            (nearest, current) => {
-                const nearestDistance = calculateDistanceKm(
-                    userLocation,
-                    nearest
-                );
-
-                const currentDistance = calculateDistanceKm(
-                    userLocation,
-                    current
-                );
-
-                return currentDistance < nearestDistance
-                    ? current
-                    : nearest;
-            }
+        const openLocations = locations.filter(
+            (location) =>
+                getLocationOpeningStatus(
+                    location,
+                    currentTime
+                ).type === "open"
         );
 
-        return nearestLocation.id;
-    }, [locations, userLocation]);
+        if (openLocations.length > 0) {
+            return getNearestLocation(
+                openLocations,
+                userLocation
+            ).id;
+        }
+
+        const opensLaterLocations = locations.filter(
+            (location) =>
+                getLocationOpeningStatus(
+                    location,
+                    currentTime
+                ).type === "opensLater"
+        );
+
+        if (opensLaterLocations.length > 0) {
+            return getNearestLocation(
+                opensLaterLocations,
+                userLocation
+            ).id;
+        }
+
+        return getNearestLocation(
+            locations,
+            userLocation
+        ).id;
+    }, [locations, userLocation, currentTime]);
 
     const [expandedLocationId, setExpandedLocationId] =
         useState<string | null>(initialLocationId);
@@ -60,8 +105,6 @@ export function StandlLocationsSection({
     if (locations.length === 0) {
         return (
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Standorte</Text>
-
                 <View style={styles.emptyCard}>
                     <Text style={styles.emptyText}>
                         Für dieses Standl sind noch keine Standorte eingetragen.
@@ -102,12 +145,6 @@ const styles = StyleSheet.create({
     section: {
         marginTop: 18,
         marginBottom: 22,
-    },
-    sectionTitle: {
-        color: Theme.textPrimary,
-        fontSize: 20,
-        fontWeight: "800",
-        marginBottom: 12,
     },
     locationList: {
         gap: 10,

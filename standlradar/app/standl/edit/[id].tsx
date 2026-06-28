@@ -1,25 +1,23 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { AppHeader } from "@/components/AppHeader";
 import { ScreenState } from "@/components/layout/ScreenState";
 import { FormScreen } from "@/components/layout/FormScreen";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
 import { SecondaryButton } from "@/components/buttons/SecondaryButton";
-import { StandlFormFields } from "@/components/standlForm/StandlFormFields";
 
 import { Theme } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
 
 import {
     getSingleStandlFromFirestore,
-    updateOwnerStandlInFirestore,
+    updateOwnerStandlBaseInfoInFirestore,
 } from "@/lib/standlService";
 import { routes } from "@/lib/routes";
 
-
-import { useStandlForm } from "@/hooks/useStandlForm";
+import type { Standl } from "@/types/standl";
 
 export default function EditStandlScreen() {
     const { id } = useLocalSearchParams<{ id?: string; }>();
@@ -28,21 +26,13 @@ export default function EditStandlScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [canEdit, setCanEdit] = useState(false);
 
-    const {
-        name,
-        setName,
-        category,
-        setCategory,
-        errorMessage,
-        setErrorMessage,
-        isSubmitting,
-        setIsSubmitting,
-        locationForm,
-        validate,
-        getEditableFields,
-        fillFromStandl,
-    } = useStandlForm();
+    const [standl, setStandl] = useState<Standl | null>(null);
 
+    const [name, setName] = useState("");
+    const [category, setCategory] = useState<Standl["category"]>("hendl");
+
+    const [errorMessage, setErrorMessage] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         async function loadStandl() {
@@ -82,8 +72,10 @@ export default function EditStandlScreen() {
                 }
 
                 setCanEdit(true);
+                setStandl(standl);
 
-                fillFromStandl(standl);
+                setName(standl.name);
+                setCategory(standl.category);
             } catch (error) {
                 console.warn("Standl konnte nicht geladen werden:", error);
                 setErrorMessage("Standl konnte nicht geladen werden.");
@@ -104,21 +96,22 @@ export default function EditStandlScreen() {
             setErrorMessage("Das Standl kann nicht bearbeitet werden.");
             return;
         }
-
-        if (!validate()) {
+        if (name.trim().length < 2) {
+            setErrorMessage("Bitte gib einen Namen für das Standl ein.");
             return;
         }
 
-        const editableFields = getEditableFields();
-
-        if (!editableFields) {
-            return;
-        }
 
         setIsSubmitting(true);
 
         try {
-            await updateOwnerStandlInFirestore(id, user.uid, editableFields);
+            await updateOwnerStandlBaseInfoInFirestore(
+                id,
+                user.uid,
+                {
+                    name: name.trim(),
+                    category,
+                });
 
             router.replace(routes.standlDetail(id));
         } catch (error) {
@@ -157,23 +150,152 @@ export default function EditStandlScreen() {
 
     return (
         <FormScreen
-            scrollRef={locationForm.scrollViewRef}
             contentStyle={styles.content}
         >
             <AppHeader
                 title="Standl bearbeiten"
-                subtitle="Aktualisiere Name, Kategorie und Standortdaten."
+                subtitle="Verwalte Standl-Standorte."
             />
 
             <View style={styles.form}>
-                <StandlFormFields
-                    name={name}
-                    onChangeName={setName}
-                    category={category}
-                    onChangeCategory={setCategory}
-                    locationForm={locationForm}
-                    errorMessage={errorMessage}
-                />
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Allgemeine Informationen</Text>
+
+                    <View style={styles.fieldGroup}>
+                        <Text style={styles.label}>Name</Text>
+
+                        <TextInput
+                            value={name}
+                            onChangeText={setName}
+                            placeholder="Name des Standls"
+                            placeholderTextColor={Theme.textSecondary}
+                            style={styles.input}
+                        />
+                    </View>
+
+                    <View style={styles.fieldGroup}>
+                        <Text style={styles.label}>Kategorie</Text>
+
+                        <View style={styles.categoryRow}>
+                            <Pressable
+                                accessibilityRole="button"
+                                onPress={() => setCategory("hendl")}
+                                style={({ pressed }) => [
+                                    styles.categoryButton,
+                                    category === "hendl" && styles.categoryButtonActive,
+                                    pressed && styles.pressed,
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.categoryButtonText,
+                                        category === "hendl" &&
+                                        styles.categoryButtonTextActive,
+                                    ]}
+                                >
+                                    Hendl
+                                </Text>
+                            </Pressable>
+
+                            <Pressable
+                                accessibilityRole="button"
+                                onPress={() => setCategory("steckerlfisch")}
+                                style={({ pressed }) => [
+                                    styles.categoryButton,
+                                    category === "steckerlfisch" &&
+                                    styles.categoryButtonActive,
+                                    pressed && styles.pressed,
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.categoryButtonText,
+                                        category === "steckerlfisch" &&
+                                        styles.categoryButtonTextActive,
+                                    ]}
+                                >
+                                    Steckerlfisch
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+
+                {standl ? (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Standorte</Text>
+
+                        {(standl.locations ?? []).length > 0 ? (
+                            <View style={styles.locationList}>
+                                {(standl.locations ?? []).map((location) => {
+                                    const hasSchedules =
+                                        (location.schedules ?? []).length > 0;
+
+                                    return (
+                                        <View
+                                            key={location.id}
+                                            style={styles.locationCard}
+                                        >
+                                            <View>
+                                                <Text style={styles.locationTitle}>
+                                                    {location.locationName ||
+                                                        "Unbenannter Standort"}
+                                                </Text>
+
+                                                <Text style={styles.locationText}>
+                                                    {[location.postalCode, location.city]
+                                                        .filter(Boolean)
+                                                        .join(" ")}
+                                                </Text>
+                                            </View>
+
+                                            <View style={styles.locationActions}>
+                                                <SecondaryButton
+                                                    label="Standort bearbeiten"
+                                                    onPress={() =>
+                                                        router.push(
+                                                            routes.editStandlLocation(
+                                                                standl.id,
+                                                                location.id
+                                                            )
+                                                        )
+                                                    }
+                                                />
+
+                                                <SecondaryButton
+                                                    label={
+                                                        hasSchedules
+                                                            ? "Standzeiten bearbeiten"
+                                                            : "Standzeit hinzufügen"
+                                                    }
+                                                    onPress={() =>
+                                                        router.push(
+                                                            routes.newStandlSchedule(
+                                                                standl.id,
+                                                                location.id
+                                                            )
+                                                        )
+                                                    }
+                                                />
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        ) : (
+                            <Text style={styles.emptyText}>
+                                Für dieses Standl sind noch keine Standorte eingetragen.
+                            </Text>
+                        )}
+
+                        <SecondaryButton
+                            label="Standort hinzufügen"
+                            onPress={() =>
+                                router.push(routes.newStandlLocation(standl.id))
+                            }
+                        />
+                    </View>
+                ) : null}
 
                 <PrimaryButton
                     label={
@@ -200,5 +322,88 @@ const styles = StyleSheet.create({
     },
     form: {
         gap: 12,
+    },
+    section: {
+        gap: 12,
+    },
+    sectionTitle: {
+        color: Theme.textPrimary,
+        fontSize: 18,
+        fontWeight: "800",
+    },
+    fieldGroup: {
+        gap: 8,
+    },
+    label: {
+        color: Theme.textPrimary,
+        fontSize: 15,
+        fontWeight: "700",
+    },
+    input: {
+        backgroundColor: Theme.card,
+        borderColor: Theme.border,
+        borderWidth: 1,
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 13,
+        color: Theme.textPrimary,
+        fontSize: 16,
+    },
+    categoryRow: {
+        flexDirection: "row",
+        gap: 10,
+    },
+    categoryButton: {
+        flex: 1,
+        backgroundColor: Theme.card,
+        borderColor: Theme.border,
+        borderWidth: 1,
+        borderRadius: 14,
+        paddingVertical: 13,
+        alignItems: "center",
+    },
+    categoryButtonActive: {
+        backgroundColor: Theme.secondary,
+        borderColor: Theme.secondary,
+    },
+    categoryButtonText: {
+        color: Theme.textSecondary,
+        fontSize: 14,
+        fontWeight: "700",
+    },
+    categoryButtonTextActive: {
+        color: Theme.textPrimary,
+    },
+    pressed: {
+        opacity: 0.8,
+    },
+    locationList: {
+        gap: 12,
+    },
+    locationCard: {
+        backgroundColor: Theme.card,
+        borderColor: Theme.border,
+        borderWidth: 1,
+        borderRadius: 16,
+        padding: 14,
+        gap: 12,
+    },
+    locationTitle: {
+        color: Theme.textPrimary,
+        fontSize: 16,
+        fontWeight: "800",
+    },
+    locationText: {
+        color: Theme.textSecondary,
+        fontSize: 14,
+        marginTop: 3,
+    },
+    locationActions: {
+        gap: 10,
+    },
+    emptyText: {
+        color: Theme.textSecondary,
+        fontSize: 14,
+        lineHeight: 20,
     },
 });

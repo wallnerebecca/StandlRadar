@@ -10,6 +10,7 @@ import { formatDistance } from "@/lib/formatDistance";
 import { openNavigation } from "@/lib/openNavigation";
 import { formatWeekday } from "@/lib/formatWeekday";
 import { getLocationOpeningStatus } from "@/lib/getLocationOpeningStatus";
+import { useCurrentTime } from "@/hooks/useCurrentTime";
 import type { StandlLocation } from "@/types/standlLocation";
 
 import { router } from "expo-router";
@@ -31,33 +32,36 @@ export function StandlLocationCard({
     isExpanded,
     canEdit = false,
     standlId,
-    onToggle
+    onToggle,
 }: StandlLocationCardProps) {
     const { userLocation } = useUserLocation();
+    const currentTime = useCurrentTime();
 
     const addressValue = formatFullAddress(location);
 
     const distanceKm = userLocation
-        ? calculateDistanceKm(userLocation, {
-            latitude: location.latitude,
-            longitude: location.longitude,
-        })
+        ? calculateDistanceKm(userLocation, location)
         : undefined;
 
-    const sortedSchedules = [...(location.schedules ?? [])].sort(
-        (firstSchedule, secondSchedule) => {
-            if (firstSchedule.weekday !== secondSchedule.weekday) {
-                return firstSchedule.weekday - secondSchedule.weekday;
+    const sortedSchedules = (location.schedules ?? [])
+        .filter((schedule) => schedule.status === "verified")
+        .sort(
+            (firstSchedule, secondSchedule) => {
+                if (firstSchedule.weekday !== secondSchedule.weekday) {
+                    return firstSchedule.weekday - secondSchedule.weekday;
+                }
+
+                return firstSchedule.startTime.localeCompare(
+                    secondSchedule.startTime
+                );
             }
+        );
 
-            return firstSchedule.startTime.localeCompare(
-                secondSchedule.startTime
-            );
-        }
+    const hasSchedules = sortedSchedules.length > 0;
+    const openingStatus = getLocationOpeningStatus(
+        location,
+        currentTime
     );
-
-    const hasSchedules = (location.schedules ?? []).length > 0;
-    const openingStatus = getLocationOpeningStatus(location);
 
     return (
         <View style={styles.card}>
@@ -161,7 +165,7 @@ export function StandlLocationCard({
                         <SecondaryButton
                             label={
                                 hasSchedules
-                                    ? "Standzeiten ändern"
+                                    ? "Standzeiten bearbeiten"
                                     : "Standzeit hinzufügen"
                             }
                             onPress={() =>

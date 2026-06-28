@@ -1,6 +1,7 @@
 import {
     addDoc,
     doc,
+    updateDoc,
     writeBatch,
     collection,
     getDocs,
@@ -64,6 +65,16 @@ export async function createStandlSchedule(
         schedulesRef,
         scheduleData
     );
+
+    const standlRef = doc(
+        firestoreDb,
+        "standl",
+        input.standlId
+    );
+
+    await updateDoc(standlRef, {
+        updatedAt: serverTimestamp(),
+    });
 
     return createdSchedule.id;
 }

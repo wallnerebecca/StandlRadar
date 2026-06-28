@@ -18,7 +18,7 @@ export function OwnerStandlCTA({
     return (
         <RadarStartCTA
             title="Zu meine Standln"
-            description="Verwalte Zeiten, Preise und Infos zu deinen Standl."
+            description="Verwalte Zeiten zu deinen Standl."
             icon="storefront-outline"
             onPress={() => {
                 router.push(routes.owner);

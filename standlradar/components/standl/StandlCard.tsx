@@ -31,14 +31,17 @@ export function StandlCard({ standl, location, isFavorite = false, onPress }: St
     const likeLabel =
         standl.category === "hendl" ? "Hendl-Likes" : "Fisch-Likes";
 
+    const currentTime = useCurrentTime();
+
     const { userLocation } = useUserLocation();
     const displayLocation =
         location ?? getStandlDisplayLocation(
             standl,
-            userLocation
+            userLocation,
+            currentTime,
         );
 
-    const currentTime = useCurrentTime();
+
 
     const openingStatus = displayLocation
         ? getLocationOpeningStatus(displayLocation, currentTime)

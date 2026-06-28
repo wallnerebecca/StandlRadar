@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { StyleSheet, Text, View, } from "react-native";
+import { StyleSheet, View, } from "react-native";
 
 import { FormScreen } from "@/components/layout/FormScreen";
 import { PrimaryButton } from "@/components/buttons/PrimaryButton";
@@ -7,7 +7,6 @@ import { SecondaryButton } from "@/components/buttons/SecondaryButton";
 import { StandlFormFields } from "@/components/standlForm/StandlFormFields";
 import { AppHeader } from "@/components/AppHeader";
 
-import { Theme } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { useStandlForm } from "@/hooks/useStandlForm";
@@ -73,6 +72,11 @@ export default function NewStandlScreen() {
                 mode: addMode,
             });
 
+            if (addMode === "owner") {
+                router.replace(routes.owner);
+                return;
+            }
+
             router.replace(routes.standlDetail(createdStandlId));
         } catch (error) {
             console.warn("Standl konnte nicht erstellt werden:", error);
@@ -109,8 +113,12 @@ export default function NewStandlScreen() {
                     onPress={handleCreateStandl}
                     disabled={isSubmitting}
                 />
-
-                <SecondaryButton label="Zurück" onPress={() => router.back()} />
+                {addMode === "owner" ? (
+                    <SecondaryButton
+                        label="Meine Standl"
+                        onPress={() => router.replace(routes.owner)}
+                    />
+                ) : null}
             </View>
         </FormScreen>
     );
